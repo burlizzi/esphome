@@ -31,6 +31,8 @@ struct PIDController {
 
     // d(t) := K_d * de(t)/dt
     float derivative = 0.0f;
+    process_value=previous_value_*0.95+process_value*0.05;
+
     if (dt != 0.0f)
       derivative = (process_value - previous_value_) / dt;
     previous_value_ = process_value;
