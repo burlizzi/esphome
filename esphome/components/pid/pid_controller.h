@@ -34,7 +34,7 @@ struct PIDController {
     if (std::isnan(previous_value_))
        previous_value_= process_value;
 
-    process_value=previous_value_*0.95+process_value*0.05;
+    process_value=previous_value_*0.99+process_value*0.01;
 
     if (dt != 0.0f)
       derivative = (previous_value_ - process_value) / dt;
