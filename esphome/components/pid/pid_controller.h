@@ -31,6 +31,9 @@ struct PIDController {
 
     // d(t) := K_d * de(t)/dt
     float derivative = 0.0f;
+    if (std::isnan(previous_value_))
+       previous_value_= process_value;
+
     process_value=previous_value_*0.95+process_value*0.05;
 
     if (dt != 0.0f)
@@ -73,7 +76,7 @@ struct PIDController {
   }
 
   /// Error from previous update used for derivative term
-  float previous_value_ = 0;
+  float previous_value_ = NAN;
   /// Accumulated integral value
   float accumulated_integral_ = 0;
   uint32_t last_time_ = 0;
