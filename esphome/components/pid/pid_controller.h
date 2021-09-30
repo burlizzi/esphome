@@ -12,7 +12,7 @@ struct PIDController {
     // y(t) ... process value (sensor reading)
     // u(t) ... output value
 
-    float dt = calculate_relative_time_();
+    float dt = 5;//calculate_relative_time_();
 
     // e(t) := r(t) - y(t)
     error = setpoint - process_value;
@@ -23,17 +23,22 @@ struct PIDController {
     // i(t) := K_i * \int_{0}^{t} e(t) dt
     accumulated_integral_ += error * dt * ki;
     // constrain accumulated integral value
-    if (!isnan(min_integral) && accumulated_integral_ < min_integral)
+    if (!std::isnan(min_integral) && accumulated_integral_ < min_integral)
       accumulated_integral_ = min_integral;
-    if (!isnan(max_integral) && accumulated_integral_ > max_integral)
+    if (!std::isnan(max_integral) && accumulated_integral_ > max_integral)
       accumulated_integral_ = max_integral;
     integral_term = accumulated_integral_;
 
     // d(t) := K_d * de(t)/dt
     float derivative = 0.0f;
+    if (std::isnan(previous_value_))
+       previous_value_= process_value;
+
+    process_value=previous_value_*0.95+process_value*0.05;
+
     if (dt != 0.0f)
-      derivative = (error - previous_error_) / dt;
-    previous_error_ = error;
+      derivative = (previous_value_ - process_value) / dt;
+    previous_value_ = process_value;
     derivative_term = kd * derivative;
 
     // u(t) := p(t) + i(t) + d(t)
@@ -71,7 +76,7 @@ struct PIDController {
   }
 
   /// Error from previous update used for derivative term
-  float previous_error_ = 0;
+  float previous_value_ = NAN;
   /// Accumulated integral value
   float accumulated_integral_ = 0;
   uint32_t last_time_ = 0;
