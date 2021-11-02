@@ -75,14 +75,14 @@ CONFIG_SCHEMA = cv.Schema(
             UNIT_KILOVOLT_AMPS_REACTIVE_HOURS,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_ENERGY,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_NONE,
         ),
         cv.Optional("total_exported_energy"): sensor.sensor_schema(
             UNIT_KILOVOLT_AMPS_REACTIVE_HOURS,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_ENERGY,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_NONE,
         ),
         cv.Optional("power_delivered"): sensor.sensor_schema(
@@ -166,42 +166,42 @@ CONFIG_SCHEMA = cv.Schema(
             UNIT_KILOVOLT_AMPS_REACTIVE,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional("reactive_power_delivered_l2"): sensor.sensor_schema(
             UNIT_KILOVOLT_AMPS_REACTIVE,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional("reactive_power_delivered_l3"): sensor.sensor_schema(
             UNIT_KILOVOLT_AMPS_REACTIVE,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional("reactive_power_returned_l1"): sensor.sensor_schema(
             UNIT_KILOVOLT_AMPS_REACTIVE,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional("reactive_power_returned_l2"): sensor.sensor_schema(
             UNIT_KILOVOLT_AMPS_REACTIVE,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional("reactive_power_returned_l3"): sensor.sensor_schema(
             UNIT_KILOVOLT_AMPS_REACTIVE,
             ICON_EMPTY,
             3,
-            DEVICE_CLASS_POWER,
+            DEVICE_CLASS_EMPTY,
             STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional("voltage_l1"): sensor.sensor_schema(
@@ -244,4 +244,7 @@ async def to_code(config):
             cg.add(getattr(hub, f"set_{key}")(s))
             sensors.append(f"F({key})")
 
-    cg.add_define("DSMR_SENSOR_LIST(F, sep)", cg.RawExpression(" sep ".join(sensors)))
+    if sensors:
+        cg.add_define(
+            "DSMR_SENSOR_LIST(F, sep)", cg.RawExpression(" sep ".join(sensors))
+        )

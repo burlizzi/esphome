@@ -11,6 +11,7 @@
 #include <cstring>
 #include <queue>
 
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -256,7 +257,7 @@ class LWIPRawImpl : public Socket {
         errno = EINVAL;
         return -1;
       }
-      *reinterpret_cast<int *>(optval) = tcp_nagle_disabled(pcb_);
+      *reinterpret_cast<int *>(optval) = nodelay_;
       *optlen = 4;
       return 0;
     }
@@ -285,11 +286,7 @@ class LWIPRawImpl : public Socket {
         return -1;
       }
       int val = *reinterpret_cast<const int *>(optval);
-      if (val != 0) {
-        tcp_nagle_disable(pcb_);
-      } else {
-        tcp_nagle_enable(pcb_);
-      }
+      nodelay_ = val;
       return 0;
     }
 
@@ -323,8 +320,7 @@ class LWIPRawImpl : public Socket {
       return -1;
     }
     if (rx_closed_ && rx_buf_ == nullptr) {
-      errno = ECONNRESET;
-      return -1;
+      return 0;
     }
     if (len == 0) {
       return 0;
@@ -367,6 +363,11 @@ class LWIPRawImpl : public Socket {
       buf8 += copysize;
       len -= copysize;
       read += copysize;
+    }
+
+    if (read == 0) {
+      errno = EWOULDBLOCK;
+      return -1;
     }
 
     return read;
@@ -443,9 +444,11 @@ class LWIPRawImpl : public Socket {
     if (written == 0)
       // no need to output if nothing written
       return 0;
-    int err = internal_output();
-    if (err == -1)
-      return -1;
+    if (nodelay_) {
+      int err = internal_output();
+      if (err == -1)
+        return -1;
+    }
     return written;
   }
   ssize_t writev(const struct iovec *iov, int iovcnt) override {
@@ -465,9 +468,11 @@ class LWIPRawImpl : public Socket {
     if (written == 0)
       // no need to output if nothing written
       return 0;
-    int err = internal_output();
-    if (err == -1)
-      return -1;
+    if (nodelay_) {
+      int err = internal_output();
+      if (err == -1)
+        return -1;
+    }
     return written;
   }
   int setblocking(bool blocking) override {
@@ -492,9 +497,9 @@ class LWIPRawImpl : public Socket {
       // nothing to do here, we just don't push it to the queue
       return ERR_OK;
     }
-    auto *sock = new LWIPRawImpl(newpcb);
+    auto sock = make_unique<LWIPRawImpl>(newpcb);
     sock->init();
-    accepted_sockets_.emplace(sock);
+    accepted_sockets_.push(std::move(sock));
     return ERR_OK;
   }
   void err_fn(err_t err) {
@@ -549,13 +554,16 @@ class LWIPRawImpl : public Socket {
   bool rx_closed_ = false;
   pbuf *rx_buf_ = nullptr;
   size_t rx_buf_offset_ = 0;
+  // don't use lwip nodelay flag, it sometimes causes reconnect
+  // instead use it for determining whether to call lwip_output
+  bool nodelay_ = false;
 };
 
 std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
   auto *pcb = tcp_new();
   if (pcb == nullptr)
     return nullptr;
-  auto *sock = new LWIPRawImpl(pcb);
+  auto *sock = new LWIPRawImpl(pcb);  // NOLINT(cppcoreguidelines-owning-memory)
   sock->init();
   return std::unique_ptr<Socket>{sock};
 }
