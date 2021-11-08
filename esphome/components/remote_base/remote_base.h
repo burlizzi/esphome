@@ -16,9 +16,9 @@ namespace remote_base {
 
 class RemoteTransmitData {
  public:
-  void mark(uint32_t length) { this->data_.push_back(length); }
+  virtual void mark(uint32_t length) { this->data_.push_back(length); }
 
-  void space(uint32_t length) { this->data_.push_back(-length); }
+  virtual void space(uint32_t length) { this->data_.push_back(-length); }
 
   void item(uint32_t mark, uint32_t space) {
     this->mark(mark);
@@ -48,6 +48,7 @@ class RemoteTransmitData {
   std::vector<int32_t>::iterator begin() { return this->data_.begin(); }
 
   std::vector<int32_t>::iterator end() { return this->data_.end(); }
+
 
  protected:
   std::vector<int32_t> data_{};

@@ -2,6 +2,8 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.components import binary_sensor
+CONF_FIXED = "fixed"
+CONF_ROLLING = "rolling"
 from esphome.const import (
     CONF_DATA,
     CONF_TRIGGER_ID,
@@ -667,6 +669,15 @@ RC_SWITCH_RAW_SCHEMA = cv.Schema(
         cv.Optional(CONF_PROTOCOL, default=1): RC_SWITCH_PROTOCOL_SCHEMA,
     }
 )
+
+RC_SWITCH_SECPLUS_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_FIXED): cv.int_range(min=1, max=3**20),
+        cv.Optional(CONF_ROLLING): cv.int_range(min=1, max=2**32),
+        cv.Optional(CONF_PROTOCOL, default=1): RC_SWITCH_PROTOCOL_SCHEMA,
+    }
+)
+
 RC_SWITCH_TYPE_A_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_GROUP): cv.All(
@@ -746,6 +757,7 @@ RCSwitchTypeBAction = ns.class_("RCSwitchTypeBAction", RemoteTransmitterActionBa
 RCSwitchTypeCAction = ns.class_("RCSwitchTypeCAction", RemoteTransmitterActionBase)
 RCSwitchTypeDAction = ns.class_("RCSwitchTypeDAction", RemoteTransmitterActionBase)
 RCSwitchRawReceiver = ns.class_("RCSwitchRawReceiver", RemoteReceiverBinarySensorBase)
+RCSwitchSecplusAction = ns.class_("RCSwitchSecplusAction", RemoteTransmitterActionBase)
 
 
 @register_binary_sensor("rc_switch_raw", RCSwitchRawReceiver, RC_SWITCH_RAW_SCHEMA)
@@ -793,6 +805,33 @@ async def rc_switch_type_a_action(var, config, args):
     )
     cg.add(var.set_state((await cg.templatable(config[CONF_STATE], args, bool))))
 
+
+
+@register_binary_sensor(
+    "rc_switch_secplus", RCSwitchRawReceiver, RC_SWITCH_SECPLUS_SCHEMA
+)
+def rc_switch_secplus_sensor(var, config):
+    cg.add(var.set_protocol(build_rc_switch_protocol(config[CONF_PROTOCOL])))
+    cg.add(var.set_secplus(config[CONF_FIXED], config[CONF_ROLLING]))
+
+
+@register_action(
+    "rc_switch_secplus",
+    RCSwitchSecplusAction,
+    RC_SWITCH_SECPLUS_SCHEMA.extend(RC_SWITCH_TRANSMITTER),
+)
+async def rc_switch_seqplus_action(var, config, args):
+    proto = await cg.templatable(
+        config[CONF_PROTOCOL], args, RCSwitchBase, to_exp=build_rc_switch_protocol
+    )
+    cg.add(var.set_protocol(proto))
+    cg.add(
+        var.set_fixed(config[CONF_FIXED])
+    )
+    #rolling = int("{0:032b}".format(config[CONF_ROLLING] & 0xfffffffe)[::-1], 2)
+    cg.add(
+        var.set_rolling(config[CONF_ROLLING])
+    )
 
 @register_binary_sensor(
     "rc_switch_type_b", RCSwitchRawReceiver, RC_SWITCH_TYPE_B_SCHEMA

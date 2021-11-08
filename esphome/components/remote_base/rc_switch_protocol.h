@@ -2,6 +2,9 @@
 
 #include "esphome/core/component.h"
 #include "remote_base.h"
+#include <sstream>
+#include "esphome/core/log.h"
+#include "esphome/core/preferences.h"
 
 namespace esphome {
 namespace remote_base {
@@ -50,6 +53,8 @@ class RCSwitchBase {
 
   static void type_d_code(uint8_t group, uint8_t device, bool state, uint64_t *out_code, uint8_t *out_nbits);
 
+  static void type_secplus(uint32_t fixed, uint32_t rolling, uint8_t *out_code);
+
  protected:
   uint32_t sync_high_{};
   uint32_t sync_low_{};
@@ -80,6 +85,55 @@ template<typename... Ts> class RCSwitchRawAction : public RemoteTransmitterActio
     proto.transmit(dst, the_code, nbits);
   }
 };
+
+
+template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterActionBase<Ts...> {
+ public:
+  TEMPLATABLE_VALUE(RCSwitchBase, protocol);
+  TEMPLATABLE_VALUE(__uint32_t, fixed);
+  TEMPLATABLE_VALUE(__uint32_t, rolling);
+  void encode(RemoteTransmitData *dst, Ts... x) override {
+ 
+    auto fixed = this->fixed_.value(x...);
+    static uint32_t startrolling = this->rolling_.value(x...);
+    static auto rtc = global_preferences->make_preference<uint32_t>(fixed);
+    rtc.load(&startrolling);
+    auto rolling=startrolling;
+    uint32_t roll=0;
+    for (size_t i = 0; i < 31; i++)
+    {
+        roll|=rolling&(1UL<<31);
+        roll>>=1;
+        rolling<<=1;
+    }
+    startrolling+=2;
+    rtc.save(&startrolling);
+    
+    uint8_t code[40];
+    RCSwitchBase::type_secplus(fixed, roll, code);
+    std::stringstream s;
+    for (int32_t item : code) 
+      s<<item<<',';
+    ESP_LOGD("secplus", "code:%d,%s",roll,s.str().c_str());
+    dst->space(static_cast<uint32_t>(1500));
+    dst->mark(static_cast<uint32_t>(500));
+    for (size_t i = 0; i < 20; i++)
+    {
+      dst->space(static_cast<uint32_t>((4-code[i])*500));
+      dst->mark(static_cast<uint32_t>(code[i]*500));
+    }
+    dst->space(static_cast<uint32_t>(30*2000));
+    dst->mark(static_cast<uint32_t>(1500));
+    for (size_t i = 20; i < 40; i++)
+    {
+      dst->space(static_cast<uint32_t>((4-code[i])*500));
+      dst->mark(static_cast<uint32_t>(code[i]*500));
+    }
+    dst->space(static_cast<uint32_t>(30*2000));
+    
+  }
+};
+
 
 template<typename... Ts> class RCSwitchTypeAAction : public RemoteTransmitterActionBase<Ts...> {
  public:

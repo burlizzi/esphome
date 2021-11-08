@@ -31,15 +31,19 @@ struct PIDController {
 
     // d(t) := K_d * de(t)/dt
     float derivative = 0.0f;
-    if (std::isnan(previous_value_))
-       previous_value_= process_value;
+    if (fabs(process_value-previous_value_)>0.1 || (millis() - this->last_time_)>600000)
+    {
+      if (std::isnan(previous_value_))
+        previous_value_= process_value;
+      dt=calculate_relative_time_();
+      if (dt != 0.0f)
+        derivative = (previous_value_ - process_value) / dt;
+      previous_value_ = process_value;
+      derivative_term = kd * derivative;
+    }
 
-    process_value=previous_value_*0.95+process_value*0.05;
+    //process_value=previous_value_*0.95+process_value*0.05;
 
-    if (dt != 0.0f)
-      derivative = (previous_value_ - process_value) / dt;
-    previous_value_ = process_value;
-    derivative_term = kd * derivative;
 
     // u(t) := p(t) + i(t) + d(t)
     return proportional_term + integral_term + derivative_term;
