@@ -12,7 +12,7 @@ struct PIDController {
     // y(t) ... process value (sensor reading)
     // u(t) ... output value
 
-    float dt = 5;//calculate_relative_time_();
+    float dt = (millis() - this->last_time_)/1000;
 
     // e(t) := r(t) - y(t)
     error = setpoint - process_value;
