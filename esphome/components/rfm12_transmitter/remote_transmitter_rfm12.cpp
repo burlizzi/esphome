@@ -19,7 +19,7 @@
 
 #define CS_PIN          5
 #define RFM_IRQ         17
-#define RCV             16
+//#define RCV             16
 #define TX              26
 
 
@@ -322,24 +322,46 @@ void readAllRegs()
 
 
 
-uint8_t rf12_initialize (uint8_t id, uint8_t band, uint8_t g=0xD4, uint16_t frequency=1583) {
+
+
+
+
+
+
+namespace esphome {
+namespace remote_transmitter {
+
+
+
+static const char *const TAG = "rfm12_transmitter";
+
+
+
+
+
+uint8_t rf12_initialize (uint8_t id, uint8_t band, float frequency=433.92, uint8_t g=0xD4) {
    
+    uint16_t reg=(frequency-430)*400;
+    reg &= 0xfff;
+    reg = 0xA000 + reg;
+    ESP_LOGD(TAG,"freq=%f reg=%x(%d)",frequency,reg,reg);
 
  
     rf12_xfer(0x0000); // initial SPI transfer added to avoid power-up problem
+    
     rf12_xfer(RF_SLEEP_MODE); // DC (disable clk pin), enable lbd
 
     // wait until RFM12B is out of power-up reset, this takes several *seconds*
     rf12_xfer(RF_TXREG_WRITE); // in case we're still in OOK mode
-    while (digitalRead(RFM_IRQ) == 0)
-   //for (size_t i = 0; i < 100; i++)
+    //while (digitalRead(RFM_IRQ) == 0)
+   for (size_t i = 0; i < 100; i++)
    {
        rf12_xfer(0x0000);
    }
         
 
     rf12_xfer(0x80C7 | (band << 4)); // EL (ena TX), EF (ena RX FIFO), 12.0pF
-    rf12_xfer(0xA000 + frequency); // 96-3960 freq range of values within band
+    rf12_xfer(0xA000 + reg); // 96-3960 freq range of values within band
     rf12_xfer(0xC606); // approx 49.2 Kbps, i.e. 10000/29/(1+6) Kbps
     rf12_xfer(0x94A2); // VDI,FAST,134kHz,0dBm,-91dBm
     rf12_xfer(0xC2AC); // AL,!ml,DIG,DQD4
@@ -363,27 +385,22 @@ uint8_t rf12_initialize (uint8_t id, uint8_t band, uint8_t g=0xD4, uint16_t freq
 }
 
 
-
-
-
-static void ookPulse(int on, int off) {
-    
-    rf12_onOff(1);
-    delayMicroseconds(on + 150);
-    rf12_onOff(0);
-    delayMicroseconds(off - 200);
-}
-
-
 #define rf12_control rf12_xfer
-static void rf12_init_OOK () 
+void RemoteTransmitterComponent::rf12_init_OOK (float frequency) 
 {
+    uint16_t reg=(frequency-430)*400;
+    reg &= 0xfff;
+    reg = 0xA000 + reg;
+    ESP_LOGD(TAG,"freq=%f reg=%x(%d)",frequency,reg,reg);
+
+
     rf12_control(0x8017); // 8027    868 Mhz;disabel tx register; disable RX
                           //         fifo buffer; xtal cap 12pf, same as xmitter
     rf12_control(0x82c0); // 82C0    enable receiver; enable basebandblock 
-    rf12_control(0xA000 + 1583); // A68A    868.2500 MHz
+    rf12_control(0xA000 + reg); // A68A    868.2500 MHz
     rf12_control(0xc691); // C691    c691 datarate 2395 kbps 0xc647 = 4.8kbps 
-    rf12_control(0x9489); // 9489    VDI; FAST;200khz;GAIn -6db; DRSSI 97dbm 
+    rf12_control(0x9425); // 9420    VDI; FAST;400khz;GAIn MAX; DRSSI -103dbm 
+//    rf12_control(0x9489); // 9489    VDI; FAST;200khz;GAIn -6db; DRSSI 97dbm 
     rf12_control(0xC220); // C220    datafiltercommand; ** not documented cmd 
     rf12_control(0xCA00); // CA00    FiFo and resetmode cmd; FIFO fill disabeld
     rf12_control(0xC473); // C473    AFC run only once; enable AFC; enable
@@ -396,13 +413,6 @@ static void rf12_init_OOK ()
 
 
 
-
-
-namespace esphome {
-namespace remote_transmitter {
-
-static const char *const TAG = "rfm12_transmitter";
-
 void RemoteTransmitterComponent::setup() {
     vspi.setFrequency(80*1000000);
     vspi.begin();
@@ -410,9 +420,9 @@ void RemoteTransmitterComponent::setup() {
     pinMode(TX, OUTPUT); //VSPI SS
     //digitalWrite(23, LOW);  
 
-    rf12_initialize(0, RF12_433MHZ);
+    rf12_initialize(0, RF12_433MHZ,frequency_);
     //rf12_initialize(0, RF12_868MHZ);
-    //rf12_init_OOK ();
+    rf12_init_OOK (frequency_);
 
 
 }
@@ -450,6 +460,18 @@ void RemoteTransmitterComponent::space_12(uint32_t usec) {
     //ESP_LOGD(TAG, "space");
 
 }
+
+void RemoteTransmitterComponent::set_mode(uint32_t mode) {
+    rf12_control(mode);
+}
+
+void RemoteTransmitterComponent::set_frequency(float frequency) {
+    this->frequency_=frequency;
+    //rf12_initialize(0, RF12_433MHZ,frequency);
+    rf12_init_OOK(frequency); 
+}
+
+
 void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t send_wait) {
   std::stringstream s;
   for (int32_t item : this->temp_.get_data()) 
@@ -482,7 +504,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
   digitalWrite(TX, LOW); 
 
     rf12_xfer(RF_IDLE_MODE);
-    rf12_init_OOK ();
+    rf12_init_OOK (this->frequency_);
 
 }
 

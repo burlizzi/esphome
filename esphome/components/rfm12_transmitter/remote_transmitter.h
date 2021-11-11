@@ -18,6 +18,9 @@ class RemoteTransmitterComponent : public Component
 
   void dump_config() ;
 
+  void set_mode(uint32_t mode) ;
+  void set_frequency(float frequency);
+
   float get_setup_priority() const  { return setup_priority::DATA; }
 
 
@@ -30,6 +33,8 @@ class RemoteTransmitterComponent : public Component
   void mark_12( uint32_t usec);
 
   void space_12(uint32_t usec);
+  static void rf12_init_OOK (float frequency) ;
+  float frequency_=433.9;
   //remote_base::RemoteTransmitData temp_;
 
 };
