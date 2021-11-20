@@ -498,7 +498,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
       }
     }
     if (i + 1 < send_times) {
-      delay_microseconds_accurate(send_wait);
+      delay_microseconds_safe(send_wait);
     }
   }
   digitalWrite(TX, LOW); 
