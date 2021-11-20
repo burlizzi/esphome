@@ -340,6 +340,10 @@ template<typename... Ts> class RemoteTransmitterActionBase : public Action<Ts...
 
   RemoteTransmitterBase *parent_{};
 };
+template<typename... Ts> class RemoteTransmitterActionState : public RemoteTransmitterActionBase<Ts...> {
+ public:
+  TEMPLATABLE_VALUE(bool, state);
+};
 
 template<typename T, typename D> class RemoteReceiverDumper : public RemoteReceiverDumperBase {
  public:

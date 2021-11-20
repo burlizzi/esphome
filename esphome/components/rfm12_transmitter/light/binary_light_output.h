@@ -14,13 +14,15 @@ static const char *const TAG = "rflight";
 class BinaryLightRemoteSensor:public remote_base::RemoteReceiverBinarySensorBase
 {
   public:
-  void set_group(uint64_t u_group)
+  void set_type_a(uint64_t u_group,uint64_t  u_device)
   {
-    this->group_=u_group;
+    remote_base::RCSwitchBase::type_a_code(u_group, u_device, true, &code_, &nbits_);
   }
-  void set_device(uint64_t  u_device)
+  void set_on_off(uint64_t  on,uint64_t  off)
   {
-    this->device_=u_device;
+    code_=on;
+    on_mask_=on^off;
+    mask_=~on_mask_;
   }
   virtual void setup_state(light::LightState *state) 
   {
@@ -32,9 +34,6 @@ class BinaryLightRemoteSensor:public remote_base::RemoteReceiverBinarySensorBase
   bool matches(remote_base::RemoteReceiveData src) override
   {
     //ESP_LOGD(TAG,"something happened");
-    uint8_t nbits{24};
-    uint64_t code;
-    remote_base::RCSwitchBase::type_a_code(this->group_, this->device_, false, &code, &nbits);
     
 
     uint64_t decoded_code;
@@ -43,21 +42,27 @@ class BinaryLightRemoteSensor:public remote_base::RemoteReceiverBinarySensorBase
 
     if (!remote_base::RC_SWITCH_PROTOCOLS[1].decode(src, &decoded_code, &decoded_nbits))
       return false;
-    ESP_LOGD(TAG,"decoded %llx|>%llx %d bits",decoded_code,code,decoded_nbits);
+    //ESP_LOGD(TAG,"decoded %llx %d bits",decoded_code,decoded_nbits);
 
-    if(!(decoded_nbits == nbits && (decoded_code & this->mask_) == (code & this->mask_)))
+    if(!(decoded_nbits == nbits_ && (decoded_code & this->mask_) == (code_ & this->mask_)))
       return false;
 
-    ESP_LOGD(TAG,"matches!! %llx %d bits",this->mask_,nbits);
     bool current_state;
+
+    
+    bool new_state=(decoded_code&on_mask_)==(code_&on_mask_);
+
+    ESP_LOGD(TAG,"matches!! %llx->%d",decoded_code,new_state);
+    //ESP_LOGD(TAG,"(%llx==%llx) %d bits on_mask=%llx",code_&on_mask_,decoded_code&on_mask_,nbits_,on_mask_);
     state_->current_values_as_binary(&current_state);
-    if ((decoded_code&1) != current_state)
-      state_->make_call().set_state(decoded_code&1).perform();
+    if (new_state != current_state)
+      state_->make_call().set_state(new_state).perform();
     return true;
   }
-  uint64_t mask_{0b111111111111111111110000};
-  uint8_t group_;
-  uint8_t device_;
+  uint64_t mask_{0xfffff0};
+  uint64_t on_mask_{0x1};
+  uint8_t nbits_{24};
+  uint64_t code_;
   light::LightState *state_;
 private:
 
@@ -77,18 +82,27 @@ class RfmLightOutput : public light::LightOutput {
   {
     sensor.setup_state(state);
   }
-  void set_group(const char* code)
+  void set_type_a(const char* group,const char* device)
   {
-    action.set_group(code);
-    sensor.set_group(remote_base::decode_binary_string(code));
+    auto aaction=new remote_base::RCSwitchTypeAAction<bool>();
+    aaction->set_group(group);
+    aaction->set_device(device);
+    aaction->set_protocol(remote_base::RC_SWITCH_PROTOCOLS[1]);
+    action=aaction;
+    sensor.set_type_a(remote_base::decode_binary_string(group),remote_base::decode_binary_string(device));
   }
-  void set_device(const char*code)
+  void set_on_off(uint64_t  on,uint64_t  off)
   {
-    action.set_device(code);
-    sensor.set_device(remote_base::decode_binary_string(code));
+    auto aaction=new remote_base::RCSwitchTypeRawAction<bool>();
+    aaction->set_on(on);
+    aaction->set_off(off);
+    aaction->set_nbits(24);
+    aaction->set_protocol(remote_base::RC_SWITCH_PROTOCOLS[1]);
+    action=aaction;
+    sensor.set_on_off(on,off);
   }
   void set_transmitter(remote_transmitter::RemoteTransmitterComponent *transmitter) {
-    action.set_parent(transmitter);
+    action->set_parent(transmitter);
   }
 
   void set_receiver(remote_receiver::RemoteReceiverComponent *receiver) {
@@ -99,15 +113,14 @@ class RfmLightOutput : public light::LightOutput {
   void write_state(light::LightState *state) override {
     bool binary;
     state->current_values_as_binary(&binary);
-    action.set_send_times(10);
-    action.set_send_wait(0);
-    action.set_protocol(remote_base::RC_SWITCH_PROTOCOLS[1]);
-    action.set_state(binary);
-    action.play(binary);
+    action->set_send_times(10);
+    action->set_send_wait(0);
+    action->set_state(binary);
+    action->play(binary);
   }
 
  protected:
- remote_base::RCSwitchTypeAAction<bool> action;
+ remote_base::RemoteTransmitterActionState<bool>* action;
  BinaryLightRemoteSensor sensor;
 };
 
