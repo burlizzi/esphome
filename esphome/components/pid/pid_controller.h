@@ -28,6 +28,9 @@ struct PIDController {
       accumulated_integral_ = min_integral;
     if (!std::isnan(max_integral) && accumulated_integral_ > max_integral)
       accumulated_integral_ = max_integral;
+    if (std::isnan(previous_value_))
+      previous_value_= process_value;
+      
     integral_term = accumulated_integral_;
 
     // d(t) := K_d * de(t)/dt
@@ -35,8 +38,6 @@ struct PIDController {
     if (fabs(process_value-previous_value_)>0.1 || (millis() - this->last_time_)>600000)
     {
       ESP_LOGI("pid","processing %f-%f %d,%d",process_value,previous_value_,millis() , this->last_time_);
-      if (std::isnan(previous_value_))
-        previous_value_= process_value;
       dt=calculate_relative_time_();
       if (dt != 0.0f)
         derivative = (previous_value_ - process_value) / dt;
