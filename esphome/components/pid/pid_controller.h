@@ -21,17 +21,10 @@ struct PIDController {
     // p(t) := K_p * e(t)
     proportional_term = kp * error;
 
-    // i(t) := K_i * \int_{0}^{t} e(t) dt
-    accumulated_integral_ += error * dt * ki;
-    // constrain accumulated integral value
-    if (!std::isnan(min_integral) && accumulated_integral_ < min_integral)
-      accumulated_integral_ = min_integral;
-    if (!std::isnan(max_integral) && accumulated_integral_ > max_integral)
-      accumulated_integral_ = max_integral;
+
     if (std::isnan(previous_value_))
       previous_value_= process_value;
-      
-    integral_term = accumulated_integral_;
+
 
     // d(t) := K_d * de(t)/dt
     float derivative = 0.0f;
@@ -44,10 +37,18 @@ struct PIDController {
       previous_value_ = process_value;
       derivative_term = kd * derivative;
     }
-    else
-      ESP_LOGI("pid","non ancora %f-%f %d,%d",process_value,previous_value_,millis() , this->last_time_);
+    //else  ESP_LOGI("pid","non ancora %f-%f %d,%d",process_value,previous_value_,millis() , this->last_time_);
 
     //process_value=previous_value_*0.95+process_value*0.05;
+
+    // i(t) := K_i * \int_{0}^{t} e(t) dt
+    accumulated_integral_ += error * dt * ki - derivative_term;
+    // constrain accumulated integral value
+    if (!std::isnan(min_integral) && accumulated_integral_ < min_integral)
+      accumulated_integral_ = min_integral;
+    if (!std::isnan(max_integral) && accumulated_integral_ > max_integral)
+      accumulated_integral_ = max_integral;
+    integral_term = accumulated_integral_;
 
 
     // u(t) := p(t) + i(t) + d(t)
