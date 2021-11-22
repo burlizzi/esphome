@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/core/hal.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace pid {
@@ -33,6 +34,7 @@ struct PIDController {
     float derivative = 0.0f;
     if (fabs(process_value-previous_value_)>0.1 || (millis() - this->last_time_)>600000)
     {
+      ESP_LOGI("pid","processing %f-%f %d,%d",process_value,previous_value_,millis() , this->last_time_);
       if (std::isnan(previous_value_))
         previous_value_= process_value;
       dt=calculate_relative_time_();
@@ -41,6 +43,8 @@ struct PIDController {
       previous_value_ = process_value;
       derivative_term = kd * derivative;
     }
+    else
+      ESP_LOGI("pid","non ancora %f-%f %d,%d",process_value,previous_value_,millis() , this->last_time_);
 
     //process_value=previous_value_*0.95+process_value*0.05;
 
