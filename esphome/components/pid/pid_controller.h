@@ -42,7 +42,7 @@ struct PIDController {
     //process_value=previous_value_*0.95+process_value*0.05;
 
     // i(t) := K_i * \int_{0}^{t} e(t) dt
-    accumulated_integral_ += error * dt * ki - derivative_term;
+    accumulated_integral_ += error * dt * ki + derivative_term;
     // constrain accumulated integral value
     if (!std::isnan(min_integral) && accumulated_integral_ < min_integral)
       accumulated_integral_ = min_integral;
