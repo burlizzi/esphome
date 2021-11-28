@@ -19,9 +19,7 @@ CONFIG_SCHEMA = light.BINARY_LIGHT_SCHEMA.extend(
         cv.GenerateID(CONF_TRANSMITTER_ID): cv.use_id(
             rfm12_transmitter.RemoteTransmitterComponent
         ),
-        cv.Optional(CONF_RECEIVER_ID): cv.use_id(
-            remote_receiver.RemoteReceiverComponent
-        ),
+        cv.GenerateID(CONF_RECEIVER_ID): cv.use_id(remote_receiver.RemoteReceiverComponent),
         cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(BinaryLightOutput),
         cv.Optional(CONF_GROUP): cv.All(
             remote_base.validate_rc_switch_code, cv.Length(min=5, max=5)
