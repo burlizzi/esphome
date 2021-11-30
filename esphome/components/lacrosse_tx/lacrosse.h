@@ -51,6 +51,8 @@ class LacrosseSensor : public Component,public remote_base::RemoteReceiverListen
     int v2=(decoded_code>>16) & 0xf; 
     int v3=(decoded_code>>20) & 0xf; 
     int id=(decoded_code>>25) & 0xff; 
+    
+    //ESP_LOGD(TAG, "received from %d",id);
     if (id!=index_)
       return false;
     float value=((float)v1)/10+v2+v3*10;

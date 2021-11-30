@@ -56,7 +56,13 @@ class BinaryLightRemoteSensor:public remote_base::RemoteReceiverBinarySensorBase
     //ESP_LOGD(TAG,"(%llx==%llx) %d bits on_mask=%llx",code_&on_mask_,decoded_code&on_mask_,nbits_,on_mask_);
     state_->current_values_as_binary(&current_state);
     if (new_state != current_state)
-      state_->make_call().set_state(new_state).perform();
+    {
+        state_->remote_values.set_state(new_state);
+        state_->current_values.set_state(new_state);
+        state_->publish_state();
+    }
+      
+      //state_->make_call().set_state(new_state).perform();
     return true;
   }
   uint64_t mask_{0xfffff0};
