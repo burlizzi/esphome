@@ -9,7 +9,6 @@ from esphome.components import (
 from esphome.components.remote_base import CONF_RECEIVER_ID
 
 from esphome.const import (
-    CONF_DALLAS_ID,
     CONF_INDEX,
     CONF_HUMIDITY,
     CONF_ID,
@@ -35,7 +34,7 @@ LacrosseTemperatureSensor = lacrosse_ns.class_("LacrosseSensor", cg.Component)
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(LacrosseTemperatureSensor),
-        cv.GenerateID(CONF_DALLAS_ID): cv.use_id(remote_receiver.RemoteReceiverComponent),
+        cv.GenerateID(CONF_RECEIVER_ID): cv.use_id(remote_receiver.RemoteReceiverComponent),
         cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             accuracy_decimals=1,
@@ -48,18 +47,24 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_HUMIDITY,
             state_class=STATE_CLASS_MEASUREMENT,
         ),
-        cv.Required(CONF_INDEX): cv.positive_int,
+        cv.Required(CONF_INDEX): cv.templatable (
+            cv.int_range(min=0, max=127),
+        ),
      }
 )
 
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_DALLAS_ID])
+    hub = await cg.get_variable(config[CONF_RECEIVER_ID])
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    cg.add(var.set_index(config[CONF_INDEX]))
+
+    template_ = await cg.templatable(
+            config[CONF_INDEX], (),int
+        )
+    cg.add(var.set_index(template_))
     cg.add(hub.register_listener(var))
     if CONF_TEMPERATURE in config:
         sens = await sensor.new_sensor(config[CONF_TEMPERATURE])

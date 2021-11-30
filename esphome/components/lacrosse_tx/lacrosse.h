@@ -64,7 +64,7 @@ class LacrosseSensor : public Component,public remote_base::RemoteReceiverListen
       ESP_LOGV(TAG, "hum decode=%llx %d %f",decoded_code,id, value);
       humidity_->publish_state(value);
     }
-    return false; 
+    return true; 
   };
 
   sensor::Sensor* temperature_=nullptr;

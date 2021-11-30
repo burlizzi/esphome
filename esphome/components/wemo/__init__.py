@@ -1,19 +1,30 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
+from esphome.components.web_server_base import CONF_WEB_SERVER_BASE_ID
+
+from esphome.components import (
+    web_server_base,
+)
+
 
 CONF_DEVICES = "devices"
 
 AUTO_LOAD = ["web_server_base"]
 DEPENDENCIES = ["wifi"]
 
-WemoManager = cg.global_ns.class_(
-    "WemoManager", cg.Component
+
+
+web_server_ns = cg.esphome_ns.namespace("wemo")
+
+WemoManager = web_server_ns.class_(
+    "WemoManager", cg.Component,cg.Controller
 )
 
 MULTI_CONF = True
 CONFIG_SCHEMA = cv.Schema(
     {
+        cv.GenerateID(CONF_WEB_SERVER_BASE_ID): cv.use_id(web_server_base.WebServerBase),        
         cv.GenerateID(): cv.declare_id(WemoManager),
         cv.Optional(CONF_DEVICES): cv.Any(
             "all", cv.ensure_list(cv.use_id(cg.EntityBase))
@@ -23,7 +34,8 @@ CONFIG_SCHEMA = cv.Schema(
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    web = await cg.get_variable(config[CONF_WEB_SERVER_BASE_ID])
+    var = cg.new_Pvariable(config[CONF_ID],web)
     await cg.register_component(var, config)
 
     if CONF_DEVICES in config:
