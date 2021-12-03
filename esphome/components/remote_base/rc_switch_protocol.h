@@ -114,7 +114,7 @@ template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterA
     std::stringstream s;
     for (int32_t item : code) 
       s<<item<<',';
-    ESP_LOGD("secplus", "code:%d,%s",roll,s.str().c_str());
+    ESP_LOGD("secplus", "code:%d,%s",startrolling,s.str().c_str());
     dst->space(static_cast<uint32_t>(1500));
     dst->mark(static_cast<uint32_t>(500));
     for (size_t i = 0; i < 20; i++)
