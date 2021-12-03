@@ -34,7 +34,9 @@ class RemoteTransmitterComponent : public Component
 
   void space_12(uint32_t usec);
   static void rf12_init_OOK (float frequency) ;
-  float frequency_=433.9;
+  uint8_t rf12_initialize (uint8_t id, uint8_t band, float frequency=433.92, uint8_t g=0xD4);
+  void readAllRegs();
+  float frequency_=433.7;
   //remote_base::RemoteTransmitData temp_;
 
 };
