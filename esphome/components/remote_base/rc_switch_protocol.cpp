@@ -12,7 +12,7 @@ const RCSwitchBase RC_SWITCH_PROTOCOLS[9] = {RCSwitchBase(0, 0, 0, 0, 0, 0, fals
                                              RCSwitchBase(3000, 7100, 400, 1100, 900, 600, false),
                                              RCSwitchBase(380, 2280, 380, 1140, 1140, 380, false),
                                              RCSwitchBase(3000, 7000, 500, 1000, 1000, 500, false),
-                                             RCSwitchBase(10350, 450, 450, 900, 900, 450, true),
+                                             RCSwitchBase(400, 4500, 900, 300, 300, 900, false),
                                              RCSwitchBase(300, 9300, 150, 900, 900, 150, false),
                                              RCSwitchBase(250, 2500, 250, 1250, 250, 250, false)};
 
@@ -101,13 +101,10 @@ bool RCSwitchBase::expect_sync(RemoteReceiveData &src) const {
     if (!src.peek_space(this->sync_low_, 1))
       return false;
   } else {
-    // We cant peek a space at the beginning because signals starts with a low to high transition.
-    // this long space at the beginning is the separation between the transmissions itself, so it is actually
-    // added at the end kind of artificially (by the value given to "idle:" option by the user in the yaml)
-    if (!src.peek_mark(this->sync_low_))
+    if (!src.peek_space(this->sync_high_))
       return false;
-    src.advance(1);
-    return true;
+    if (!src.peek_mark(this->sync_low_, 1))
+      return false;
   }
   src.advance(2);
   return true;
@@ -273,9 +270,9 @@ uint64_t decode_binary_string_mask(const std::string &data) {
 bool RCSwitchRawReceiver::matches(RemoteReceiveData src) {
   uint64_t decoded_code;
   uint8_t decoded_nbits;
+  
   if (!this->protocol_.decode(src, &decoded_code, &decoded_nbits))
     return false;
-
   return decoded_nbits == this->nbits_ && (decoded_code & this->mask_) == (this->code_ & this->mask_);
 }
 bool RCSwitchDumper::dump(RemoteReceiveData src) {

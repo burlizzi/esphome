@@ -51,7 +51,12 @@ class LacrosseSensor : public Component,public remote_base::RemoteReceiverListen
     int v2=(decoded_code>>16) & 0xf; 
     int v3=(decoded_code>>20) & 0xf; 
     int id=(decoded_code>>25) & 0xff; 
-    
+
+    if(v2!=((decoded_code>>4) & 0xf))
+      return false;; 
+    if(v3!=((decoded_code>>8) & 0xf))
+      return false;; 
+
     //ESP_LOGD(TAG, "received from %d",id);
     if (id!=index_)
       return false;

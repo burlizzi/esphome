@@ -24,7 +24,7 @@ WemoManager = web_server_ns.class_(
 MULTI_CONF = True
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_WEB_SERVER_BASE_ID): cv.use_id(web_server_base.WebServerBase),        
+        #cv.GenerateID(CONF_WEB_SERVER_BASE_ID): cv.use_id(web_server_base.WebServerBase),        
         cv.GenerateID(): cv.declare_id(WemoManager),
         cv.Optional(CONF_DEVICES): cv.Any(
             "all", cv.ensure_list(cv.use_id(cg.EntityBase))
@@ -34,11 +34,13 @@ CONFIG_SCHEMA = cv.Schema(
 
 
 async def to_code(config):
-    web = await cg.get_variable(config[CONF_WEB_SERVER_BASE_ID])
-    var = cg.new_Pvariable(config[CONF_ID],web)
+    #web = await cg.get_variable(config[CONF_WEB_SERVER_BASE_ID])
+    var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
     if CONF_DEVICES in config:
+        port = 180
         for dev in config[CONF_DEVICES]:
             device = await cg.get_variable(dev)
-            cg.add(var.add_device(device))
+            cg.add(var.add_device(device,port))
+            port=port+1
