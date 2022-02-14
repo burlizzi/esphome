@@ -96,7 +96,7 @@ template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterA
  
     auto fixed = this->fixed_.value(x...);
     static uint32_t startrolling = this->rolling_.value(x...);
-    static auto rtc = global_preferences->make_preference<uint32_t>(fixed);
+    static auto rtc = global_preferences->make_preference<uint32_t>(fixed,true);
     rtc.load(&startrolling);
     auto rolling=startrolling;
     uint32_t roll=0;
