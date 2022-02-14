@@ -1,0 +1,61 @@
+
+import esphome.codegen as cg
+import esphome.config_validation as cv
+from esphome import pins
+from esphome import automation
+from esphome.const import  CONF_ID, CONF_CS_PIN
+
+CONF_BAND = "band"
+CONF_DEVEUI = "deveui"
+CONF_APPEUI = "appeui"
+CONF_APPKEY = "appkey"
+CONF_RESET = "rst_pin"
+CONF_DIO0 = "dio0_pin"
+CONF_DIO1 = "dio1_pin"
+CONF_DIO2 = "dio2_pin"
+CONF_DIO5 = "dio5_pin"
+CONF_DATA_ACTION = "data_action"
+
+DEPENDENCIES = ["spi"]
+
+
+ns = lora_ns = cg.esphome_ns.namespace("lora")
+Lora = ns.class_("Lora",cg.Component)
+
+
+#MULTI_CONF = True
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(Lora),
+
+        cv.Required(CONF_BAND): cv.one_of('EU_868',"AS_923","US_915","AU_915"),
+        cv.Required(CONF_CS_PIN): pins.internal_gpio_output_pin_number,
+        cv.Required(CONF_DEVEUI): cv.string,
+        cv.Optional(CONF_APPEUI,"0000000000000000"): cv.string,
+        cv.Required(CONF_APPKEY): cv.string,
+        cv.Required(CONF_RESET): pins.internal_gpio_output_pin_number,
+        cv.Required(CONF_DIO0): pins.internal_gpio_output_pin_number,
+        cv.Required(CONF_DIO1): pins.internal_gpio_input_pin_number,
+        cv.Required(CONF_DIO2): pins.internal_gpio_input_pin_number,
+        cv.Optional(CONF_DIO5,0): pins.internal_gpio_input_pin_number,
+        cv.Optional(CONF_DATA_ACTION): automation.validate_automation(
+            single=True
+        ),        
+        
+    }
+).extend(cv.COMPONENT_SCHEMA)
+
+
+async def to_code(config):
+    cg.add_library("https://github.com/BeelanMX/Beelan-LoRaWAN", "2.0.0")
+    cg.add_build_flag("-D"+config[CONF_BAND])
+    var = cg.new_Pvariable(config[CONF_ID])
+    await cg.register_component(var, config)
+    cg.add(var.setDevEUI(config[CONF_DEVEUI]))
+    cg.add(var.setAppEUI(config[CONF_APPEUI]))
+    cg.add(var.setAppKey(config[CONF_APPKEY]))
+    if CONF_DATA_ACTION in config:
+        await automation.build_automation(
+            var.data_trigger(), [(int, "port"),(cg.std_string, "data")], config[CONF_DATA_ACTION]
+        )
+    cg.add_global(cg.RawStatement(f'const sRFM_pins RFM_pins = {{.CS={config[CONF_CS_PIN]},.RST={config[CONF_RESET]},.DIO0={config[CONF_DIO0]},.DIO1={config[CONF_DIO1]},.DIO2={config[CONF_DIO2]},.DIO5={config[CONF_DIO5]},}};'))
