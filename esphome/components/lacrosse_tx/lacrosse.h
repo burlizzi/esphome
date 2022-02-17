@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <functional>
 
 #include "esphome/components/remote_receiver/remote_receiver.h"
 #include "esphome/components/remote_base/remote_base.h"
@@ -15,7 +16,8 @@ static const char *const TAG = "lacrosse";
 
 class LacrosseSensor : public Component,public remote_base::RemoteReceiverListener {
  public:
-  void set_index(int index){this->index_=index;}
+  void set_index(std::function<int()> getter){this->getter_=getter;}
+  void set_index(int index){this->getter_=[index](){return index;};}
   void set_temperature_sensor(sensor::Sensor* temperature){
     this->temperature_=temperature;
   }
@@ -58,7 +60,7 @@ class LacrosseSensor : public Component,public remote_base::RemoteReceiverListen
       return false;; 
 
     //ESP_LOGD(TAG, "received from %d",id);
-    if (id!=index_)
+    if (id!=getter_())
       return false;
     float value=((float)v1)/10+v2+v3*10;
     if (type==0xa0 && temperature_)
@@ -76,7 +78,7 @@ class LacrosseSensor : public Component,public remote_base::RemoteReceiverListen
 
   sensor::Sensor* temperature_=nullptr;
   sensor::Sensor* humidity_=nullptr;
-  char index_;
+  std::function<int()> getter_;
 };
 
 }  // namespace lacrosse_tx
