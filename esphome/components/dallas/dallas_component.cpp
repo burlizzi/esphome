@@ -142,8 +142,8 @@ void DallasComponent::update() {
 
       float tempc = sensor->get_temp_c();
       ESP_LOGD(TAG, "'%s': Got Temperature=%.1f°C", sensor->get_name().c_str(), tempc);
-      if (abs(sensor->get_raw_state()-tempc)>1){
-        ESP_LOGW(TAG, "'%s' - filter out !", sensor->get_name().c_str());
+      if (fabs(sensor->get_raw_state()-tempc)>1){
+        ESP_LOGW(TAG, "'%s' - filter out %.2f - %.2f!", sensor->get_name().c_str(),sensor->get_raw_state(),tempc);
         sensor->publish_state(NAN);
         this->status_set_warning();
         return;
