@@ -1,10 +1,11 @@
 #pragma once
-
+#include <nvs_flash.h>
 #include "esphome/core/component.h"
 #include "remote_base.h"
 #include <sstream>
 #include "esphome/core/log.h"
 #include "esphome/core/preferences.h"
+extern uint32_t codes_sav[];
 
 namespace esphome {
 namespace remote_base {
@@ -54,6 +55,9 @@ class RCSwitchBase {
   static void type_d_code(uint8_t group, uint8_t device, bool state, uint64_t *out_code, uint8_t *out_nbits);
 
   static void type_secplus(uint32_t fixed, uint32_t rolling, uint8_t *out_code);
+
+  static void type_Keeloq(uint32_t fixed, uint32_t rolling, uint8_t *out_code);
+
 
  protected:
   uint32_t sync_high_{};
@@ -134,6 +138,137 @@ template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterA
   }
 };
 
+
+
+#define KeeLoq_NLF              0x3A5C742EUL
+#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+
+class Keeloq
+{
+  public:
+    Keeloq(
+		const unsigned long keyHigh,
+		const unsigned long keyLow ):
+_keyHigh( keyHigh ),
+_keyLow( keyLow )
+{
+}
+		
+    unsigned long encrypt( const unsigned long data ){
+  unsigned long x = data;
+  unsigned long r;
+  int keyBitNo, index;
+  unsigned long keyBitVal,bitVal;
+
+  for ( r = 0; r < 528; r++ )
+  {
+    keyBitNo = r & 63;
+    if(keyBitNo < 32)
+      keyBitVal = bitRead(_keyLow,keyBitNo);
+    else
+      keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
+    index = 1 * bitRead(x,1) + 2 * bitRead(x,9) + 4 * bitRead(x,20) + 8 * bitRead(x,26) + 16 * bitRead(x,31);
+    bitVal = bitRead(x,0) ^ bitRead(x, 16) ^ bitRead(KeeLoq_NLF,index) ^ keyBitVal;
+    x = (x>>1) ^ bitVal<<31;
+  }
+  return x;
+}
+    unsigned long decrypt( const unsigned long data ){
+  unsigned long x = data;
+  unsigned long r;
+  int keyBitNo, index;
+  unsigned long keyBitVal,bitVal;
+
+  for (r = 0; r < 528; r++)
+  {
+    keyBitNo = (15-r) & 63;
+    if(keyBitNo < 32)
+      keyBitVal = bitRead(_keyLow,keyBitNo);
+    else
+      keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
+    index = 1 * bitRead(x,0) + 2 * bitRead(x,8) + 4 * bitRead(x,19) + 8 * bitRead(x,25) + 16 * bitRead(x,30);
+    bitVal = bitRead(x,31) ^ bitRead(x, 15) ^ bitRead(KeeLoq_NLF,index) ^ keyBitVal;
+    x = (x<<1) ^ bitVal;
+  }
+  return x;
+ }
+    
+  private:
+    unsigned long _keyHigh;
+	unsigned long _keyLow;
+};
+
+
+template<typename... Ts> class RCSwitchKeeloqAction : public RemoteTransmitterActionBase<Ts...> {
+ public:
+  TEMPLATABLE_VALUE(RCSwitchBase, protocol);
+  TEMPLATABLE_VALUE(__uint32_t, keyLow);
+  TEMPLATABLE_VALUE(__uint32_t, keyHigh);
+  TEMPLATABLE_VALUE(__uint16_t, serial);
+  void encode(RemoteTransmitData *dst, Ts... x) override {
+ 
+    auto keyLow = this->keyLow_.value(x...);
+    auto keyHigh = this->keyHigh_.value(x...);
+/*    auto id = this->serial_.value(x...);
+    
+    Keeloq k1(keyLow, keyHigh);
+    auto device_key_msb = k1.decrypt(id | 0x60000000L);
+    auto device_key_lsb = k1.decrypt(id | 0x20000000L);
+    
+    Keeloq k(device_key_msb, device_key_lsb);
+
+    const int disc                 = 0x0100; // 0x0100 for single channel remote
+*/
+    static uint16_t serial = this->serial_.value(x...);
+
+    static auto rtc = global_preferences->make_preference<uint32_t>(keyLow,true);
+    rtc.load(&serial);
+    auto rolling=serial;
+    serial++;
+    rtc.save(&serial);
+    
+//    unsigned int result = (disc << 16) | rolling;
+
+//    uint64_t enc = k.encrypt(result);
+    uint64_t pack = codes_sav[rolling];
+    pack <<= 32;
+    pack |= keyLow;
+    
+    ESP_LOGD("keeloq", "code:%llx",pack);
+
+    
+
+    
+//    std::stringstream s;
+
+    for (size_t i = 0; i < 12; i++)
+    {
+      dst->space(432);
+      dst->mark(432);
+    }
+    dst->space(4000-432);
+
+    for(int i=64; i>0; i--)
+    {
+      if(pack & 0x8000000000000000l)
+      {
+          dst->mark(848);
+          dst->space(432);
+      }
+      else
+      {
+          dst->mark(432);
+          dst->space(848);
+      }
+      pack <<= 1;
+    }      
+    dst->mark(432);
+    dst->space(848);
+    dst->mark(432);
+    dst->space(848);
+    dst->space(17000);
+  }
+};
 
 
 template<typename... Ts> class RCSwitchTypeRawAction : public RemoteTransmitterActionState<Ts...> {
