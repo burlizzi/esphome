@@ -22,7 +22,6 @@ from esphome.const import (
 )
 
 
-
 AUTO_LOAD = ["sensor", "remote_base"]
 CODEOWNERS = ["@luca"]
 
