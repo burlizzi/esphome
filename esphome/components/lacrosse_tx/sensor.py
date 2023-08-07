@@ -55,7 +55,6 @@ CONFIG_SCHEMA = cv.Schema(
 )
 
 
-
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_RECEIVER_ID])
     var = cg.new_Pvariable(config[CONF_ID])

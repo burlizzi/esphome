@@ -2,6 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.components import binary_sensor
+
 CONF_FIXED = "fixed"
 CONF_ROLLING = "rolling"
 CONF_KEYLOW = "keylow"
@@ -1018,7 +1019,7 @@ RC_SWITCH_KEELOQ_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_KEYLOW): cv.int_range(min=1, max=3**32),
         cv.Required(CONF_KEYHIGH): cv.int_range(min=1, max=3**32),
-#        cv.Optional(CONF_FIXED): cv.int_range(min=1, max=2**32),
+        #        cv.Optional(CONF_FIXED): cv.int_range(min=1, max=2**32),
         cv.Optional(CONF_SERIAL): cv.int_range(min=1, max=2**16),
         cv.Optional(CONF_PROTOCOL, default=1): RC_SWITCH_PROTOCOL_SCHEMA,
     }
@@ -1152,7 +1153,6 @@ async def rc_switch_type_a_action(var, config, args):
     cg.add(var.set_state(await cg.templatable(config[CONF_STATE], args, bool)))
 
 
-
 @register_binary_sensor(
     "rc_switch_secplus", RCSwitchRawReceiver, RC_SWITCH_SECPLUS_SCHEMA
 )
@@ -1171,15 +1171,9 @@ async def rc_switch_seqplus_action(var, config, args):
         config[CONF_PROTOCOL], args, RCSwitchBase, to_exp=build_rc_switch_protocol
     )
     cg.add(var.set_protocol(proto))
-    cg.add(
-        var.set_fixed(config[CONF_FIXED])
-    )
-    #rolling = int("{0:032b}".format(config[CONF_ROLLING] & 0xfffffffe)[::-1], 2)
-    cg.add(
-        var.set_rolling(config[CONF_ROLLING])
-    )
-
-
+    cg.add(var.set_fixed(config[CONF_FIXED]))
+    # rolling = int("{0:032b}".format(config[CONF_ROLLING] & 0xfffffffe)[::-1], 2)
+    cg.add(var.set_rolling(config[CONF_ROLLING]))
 
 
 @register_binary_sensor(
@@ -1200,15 +1194,9 @@ async def rc_switch_keeloq_action(var, config, args):
         config[CONF_PROTOCOL], args, RCSwitchBase, to_exp=build_rc_switch_protocol
     )
     cg.add(var.set_protocol(proto))
-    cg.add(
-        var.set_keyLow(config[CONF_KEYLOW])
-    )
-    cg.add(
-        var.set_keyHigh(config[CONF_KEYHIGH])
-    )
-    cg.add(
-        var.set_serial(config[CONF_SERIAL])
-    )
+    cg.add(var.set_keyLow(config[CONF_KEYLOW]))
+    cg.add(var.set_keyHigh(config[CONF_KEYHIGH]))
+    cg.add(var.set_serial(config[CONF_SERIAL]))
 
 
 @register_binary_sensor(
