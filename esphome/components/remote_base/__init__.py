@@ -3,12 +3,6 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.components import binary_sensor
 
-CONF_FIXED = "fixed"
-CONF_ROLLING = "rolling"
-CONF_KEYLOW = "keylow"
-CONF_KEYHIGH = "keyhigh"
-CONF_SERIAL = "serial"
-
 from esphome.const import (
     CONF_DATA,
     CONF_TRIGGER_ID,
@@ -41,6 +35,12 @@ from esphome.const import (
 from esphome.core import coroutine
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 from esphome.util import Registry, SimpleRegistry
+
+CONF_FIXED = "fixed"
+CONF_ROLLING = "rolling"
+CONF_KEYLOW = "keylow"
+CONF_KEYHIGH = "keyhigh"
+CONF_SERIAL = "serial"
 
 AUTO_LOAD = ["binary_sensor"]
 
@@ -1156,10 +1156,6 @@ async def rc_switch_type_a_action(var, config, args):
 @register_binary_sensor(
     "rc_switch_secplus", RCSwitchRawReceiver, RC_SWITCH_SECPLUS_SCHEMA
 )
-def rc_switch_secplus_sensor(var, config):
-    cg.add(var.set_protocol(build_rc_switch_protocol(config[CONF_PROTOCOL])))
-    cg.add(var.set_secplus(config[CONF_FIXED], config[CONF_ROLLING]))
-
 
 @register_action(
     "rc_switch_secplus",
@@ -1179,10 +1175,10 @@ async def rc_switch_seqplus_action(var, config, args):
 @register_binary_sensor(
     "rc_switch_keeloq", RCSwitchRawReceiver, RC_SWITCH_KEELOQ_SCHEMA
 )
+
 def rc_switch_secplus_sensor(var, config):
     cg.add(var.set_protocol(build_rc_switch_protocol(config[CONF_PROTOCOL])))
     cg.add(var.set_secplus(config[CONF_FIXED], config[CONF_ROLLING]))
-
 
 @register_action(
     "rc_switch_keeloq",
