@@ -207,9 +207,9 @@ template<typename... Ts> class RCSwitchKeeloqAction : public RemoteTransmitterAc
     serial++;
     rtc.save(&serial);
     
-//    unsigned int result = (disc << 16) | rolling;
+    //    unsigned int result = (disc << 16) | rolling;
     ESP_LOGI("keeloq","serial:%d",serial);
-//    uint64_t enc = k.encrypt(result);
+    //    uint64_t enc = k.encrypt(result);
     uint64_t pack = codes_sav[rolling];
     pack <<= 32;
     pack |= keyLow;

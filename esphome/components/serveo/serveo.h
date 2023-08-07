@@ -21,8 +21,8 @@ class Serveo : public Component {
   ssh_session session;
   ssh_channel channel;
   
-char buffer[2560];
-  Serveo() : joined(false),session(NULL),channel(NULL) {}
+  char buffer[2560];
+  Serveo() : joined(false), session(NULL), channel(NULL) {}
   
 
   int authenticate_console(ssh_session session) {
@@ -58,10 +58,7 @@ char buffer[2560];
     return rc;
   }
 
-  void setup() override {
-    
-    
-  }
+  void setup() override {}
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
   void connect()  {
     disableLoopWDT();
@@ -88,15 +85,15 @@ char buffer[2560];
       ESP_LOGD("ssh", "cannot autenticate\n\n");
 
     ESP_LOGD("ssh", "ssh_channel_listen_forward");
-    //ssh_set_log_level(SSH_LOG_DEBUG);
+    // ssh_set_log_level(SSH_LOG_DEBUG);
     auto rc = ssh_channel_listen_forward(session, host, 80, NULL);
     if (rc != SSH_OK) {
       ESP_LOGD("ssh", "Error opening remote port: %s\n", ssh_get_error(session));
       return;
     }
-    //ssh_set_log_level(SSH_LOG_NONE);
+    // ssh_set_log_level(SSH_LOG_NONE);
   
-    ESP_LOGD("ssh", "connected to host: %s.serveo.net",host);
+    ESP_LOGD("ssh", "connected to host: %s.serveo.net", host);
     
     // uint32_t* dev=(uint32_t*)DevEUI;
     // rtc = global_preferences->make_preference<sLoRa_Session>(RESTORE_STATE_VERSION^dev[0]^dev[1],true);
@@ -116,21 +113,19 @@ char buffer[2560];
 
   void loop() override {
     if (session==NULL)
-     connect();
-    if (ssh_get_status(session)==SSH_CLOSED)
+      connect();
+    if (ssh_get_status(session) == SSH_CLOSED)
     {
       ESP_LOGD("ssh","restart connection");
-     connect();
+      connect();
     }
     if (ssh_channel_is_closed(channel))
       channel = ssh_channel_accept_forward(session, 0, &port);
-    if (channel == NULL)
-    {
+    if (channel == NULL){
       return;
     }
 
-    if (!ssh_channel_is_eof(channel))
-    {
+    if (!ssh_channel_is_eof(channel)){
       ESP_LOGD("ssh","read\n");
       
       auto nbytes = ssh_channel_read_timeout(channel, buffer, sizeof(buffer), 0,0);
