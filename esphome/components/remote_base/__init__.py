@@ -1156,7 +1156,6 @@ async def rc_switch_type_a_action(var, config, args):
 @register_binary_sensor(
     "rc_switch_secplus", RCSwitchRawReceiver, RC_SWITCH_SECPLUS_SCHEMA
 )
-
 @register_action(
     "rc_switch_secplus",
     RCSwitchSecplusAction,
@@ -1175,10 +1174,10 @@ async def rc_switch_seqplus_action(var, config, args):
 @register_binary_sensor(
     "rc_switch_keeloq", RCSwitchRawReceiver, RC_SWITCH_KEELOQ_SCHEMA
 )
-
 def rc_switch_secplus_sensor(var, config):
     cg.add(var.set_protocol(build_rc_switch_protocol(config[CONF_PROTOCOL])))
     cg.add(var.set_secplus(config[CONF_FIXED], config[CONF_ROLLING]))
+
 
 @register_action(
     "rc_switch_keeloq",

@@ -2,7 +2,6 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import (
     sensor,
-    remote_base,
 )
 from esphome.components.remote_base import CONF_RECEIVER_ID
 

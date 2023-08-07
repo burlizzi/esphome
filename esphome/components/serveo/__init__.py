@@ -1,9 +1,7 @@
-from typing import Literal
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome import pins
 from esphome import automation
-from esphome.const import CONF_ID, CONF_CS_PIN
+from esphome.const import CONF_ID
 
 CONF_HOST = "host"
 CONF_PORT = "port"
