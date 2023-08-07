@@ -19,10 +19,9 @@ class Serveo : public Component {
   int port;
   ssh_session session;
   ssh_channel channel;
-  
-char buffer[256];
-  Serveo() : joined(false),session(NULL),channel(NULL) {}
-  
+
+  char buffer[256];
+  Serveo() : joined(false), session(NULL), channel(NULL) {}
 
   int authenticate_console(ssh_session session) {
     int rc;
@@ -57,11 +56,8 @@ char buffer[256];
     return rc;
   }
 
-  void setup() override {
-    
-    
-  }
-  void connect()  {
+  void setup() override {}
+  void connect() {
     libssh_begin();
     session = ssh_new();
     if (session == NULL)
@@ -84,14 +80,11 @@ char buffer[256];
       ESP_LOGD("ssh", "cannot autenticate\n\n");
 
     auto rc = ssh_channel_listen_forward(session, host, 80, NULL);
-    if (rc != SSH_OK)
-    {
-      ESP_LOGD("ssh", "Error opening remote port: %s\n",
-              ssh_get_error(session));
+    if (rc != SSH_OK) {
+      ESP_LOGD("ssh", "Error opening remote port: %s\n", ssh_get_error(session));
       return;
     }
-  
-    
+
     // uint32_t* dev=(uint32_t*)DevEUI;
     // rtc = global_preferences->make_preference<sLoRa_Session>(RESTORE_STATE_VERSION^dev[0]^dev[1],true);
     // start();
@@ -104,62 +97,57 @@ char buffer[256];
     // rtc.save(&Session_Data);
   }
 
-
   void setKey(const char *key) { this->privkey = key; }
-  void setHost(const char *host) {this->host=host;}
-  void setPort(int port) {this->port=port;}
+  void setHost(const char *host) { this->host = host; }
+  void setPort(int port) { this->port = port; }
 
   void loop() override {
-    if (session==NULL)
-     return;
+    if (session == NULL)
+      return;
     if (channel == NULL)
       channel = ssh_channel_accept_forward(session, 0, &port);
-    if (channel == NULL)
-    {
-     // ESP_LOGD("ssh", "Error waiting for incoming connection: %s\n",              ssh_get_error(session));
+    if (channel == NULL) {
+      // ESP_LOGD("ssh", "Error waiting for incoming connection: %s\n",              ssh_get_error(session));
       return;
     }
-   // if (channel==NULL)
+    // if (channel==NULL)
 
     const char *helloworld = ""
-"HTTP/1.1 200 OK\n"
-"Content-Type: text/html\n"
-"Content-Length: 113\n"
-"\n"
-"<html>\n"
-"  <head>\n"
-"    <title>Hello, World!</title>\n"
-"  </head>\n"
-"  <body>\n"
-"    <h1>Hello, World!</h1>\n"
-"  </body>\n"
-"</html>\n";
-    if (!ssh_channel_is_eof(channel))
-    {
-      ESP_LOGD("ssh","read\n");
-      
-      auto nbytes = ssh_channel_read_timeout(channel, buffer, sizeof(buffer), 0,0);
-      ESP_LOGD("ssh","read %d\n",nbytes);
-      if (nbytes <= 0)
-      {
+                             "HTTP/1.1 200 OK\n"
+                             "Content-Type: text/html\n"
+                             "Content-Length: 113\n"
+                             "\n"
+                             "<html>\n"
+                             "  <head>\n"
+                             "    <title>Hello, World!</title>\n"
+                             "  </head>\n"
+                             "  <body>\n"
+                             "    <h1>Hello, World!</h1>\n"
+                             "  </body>\n"
+                             "</html>\n";
+    if (!ssh_channel_is_eof(channel)) {
+      ESP_LOGD("ssh", "read\n");
+
+      auto nbytes = ssh_channel_read_timeout(channel, buffer, sizeof(buffer), 0, 0);
+      ESP_LOGD("ssh", "read %d\n", nbytes);
+      if (nbytes <= 0) {
         return;
       }
-      ESP_LOGD("ssh","strncmp\n");
-      if (strncmp(buffer, "GET /", 5)) return;
- 
-    nbytes = strlen(helloworld);
-    ESP_LOGD("ssh","ssh_channel_write\n");
-    auto nwritten = ssh_channel_write(channel, helloworld, nbytes);
-    if (nwritten != nbytes)
-    {
-      ESP_LOGD("ssh", "Error sending answer: %s\n",
-              ssh_get_error(session));
-      ssh_channel_send_eof(channel);
-      ssh_channel_free(channel);
-      return;
-    }
-    ESP_LOGD("ssh","Sent answer\n");/**/
-    channel=NULL;
+      ESP_LOGD("ssh", "strncmp\n");
+      if (strncmp(buffer, "GET /", 5))
+        return;
+
+      nbytes = strlen(helloworld);
+      ESP_LOGD("ssh", "ssh_channel_write\n");
+      auto nwritten = ssh_channel_write(channel, helloworld, nbytes);
+      if (nwritten != nbytes) {
+        ESP_LOGD("ssh", "Error sending answer: %s\n", ssh_get_error(session));
+        ssh_channel_send_eof(channel);
+        ssh_channel_free(channel);
+        return;
+      }
+      ESP_LOGD("ssh", "Sent answer\n"); /**/
+      channel = NULL;
     }
   }
 
@@ -173,8 +161,6 @@ char buffer[256];
   std::unique_ptr<Trigger<int, int, std::string>> data_trigger_{nullptr};
   static const uint32_t RESTORE_STATE_VERSION = 0x2a5a2c13UL;
   ESPPreferenceObject rtc;
-
-
 };
 }  // namespace serveo
 }  // namespace esphome

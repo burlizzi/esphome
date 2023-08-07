@@ -50,7 +50,6 @@ class RemoteTransmitData {
 
   std::vector<int32_t>::iterator end() { return this->data_.end(); }
 
-
  protected:
   std::vector<int32_t> data_{};
   uint32_t carrier_frequency_{0};

@@ -58,7 +58,6 @@ class RCSwitchBase {
 
   static void type_Keeloq(uint32_t fixed, uint32_t rolling, uint8_t *out_code);
 
-
  protected:
   uint32_t sync_high_{};
   uint32_t sync_low_{};
@@ -90,114 +89,96 @@ template<typename... Ts> class RCSwitchRawAction : public RemoteTransmitterActio
   }
 };
 
-
 template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterActionBase<Ts...> {
  public:
   TEMPLATABLE_VALUE(RCSwitchBase, protocol);
   TEMPLATABLE_VALUE(__uint32_t, fixed);
   TEMPLATABLE_VALUE(__uint32_t, rolling);
   void encode(RemoteTransmitData *dst, Ts... x) override {
- 
     auto fixed = this->fixed_.value(x...);
     static uint32_t startrolling = this->rolling_.value(x...);
-    static auto rtc = global_preferences->make_preference<uint32_t>(fixed,true);
+    static auto rtc = global_preferences->make_preference<uint32_t>(fixed, true);
     rtc.load(&startrolling);
-    auto rolling=startrolling;
-    uint32_t roll=0;
-    for (size_t i = 0; i < 31; i++)
-    {
-        roll|=rolling&(1UL<<31);
-        roll>>=1;
-        rolling<<=1;
+    auto rolling = startrolling;
+    uint32_t roll = 0;
+    for (size_t i = 0; i < 31; i++) {
+      roll |= rolling & (1UL << 31);
+      roll >>= 1;
+      rolling <<= 1;
     }
-    startrolling+=2;
+    startrolling += 2;
     rtc.save(&startrolling);
-    
+
     uint8_t code[40];
     RCSwitchBase::type_secplus(fixed, roll, code);
     std::stringstream s;
-    for (int32_t item : code) 
-      s<<item<<',';
-    ESP_LOGD("secplus", "code:%d,%s",startrolling,s.str().c_str());
+    for (int32_t item : code)
+      s << item << ',';
+    ESP_LOGD("secplus", "code:%d,%s", startrolling, s.str().c_str());
     dst->space(static_cast<uint32_t>(1500));
     dst->mark(static_cast<uint32_t>(500));
-    for (size_t i = 0; i < 20; i++)
-    {
-      dst->space(static_cast<uint32_t>((4-code[i])*500));
-      dst->mark(static_cast<uint32_t>(code[i]*500));
+    for (size_t i = 0; i < 20; i++) {
+      dst->space(static_cast<uint32_t>((4 - code[i]) * 500));
+      dst->mark(static_cast<uint32_t>(code[i] * 500));
     }
-    dst->space(static_cast<uint32_t>(30*2000));
+    dst->space(static_cast<uint32_t>(30 * 2000));
     dst->mark(static_cast<uint32_t>(1500));
-    for (size_t i = 20; i < 40; i++)
-    {
-      dst->space(static_cast<uint32_t>((4-code[i])*500));
-      dst->mark(static_cast<uint32_t>(code[i]*500));
+    for (size_t i = 20; i < 40; i++) {
+      dst->space(static_cast<uint32_t>((4 - code[i]) * 500));
+      dst->mark(static_cast<uint32_t>(code[i] * 500));
     }
-    dst->space(static_cast<uint32_t>(30*2000));
-    
+    dst->space(static_cast<uint32_t>(30 * 2000));
   }
 };
 
-
-
-#define KeeLoq_NLF              0x3A5C742EUL
+#define KeeLoq_NLF 0x3A5C742EUL
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 
-class Keeloq
-{
-  public:
-    Keeloq(
-		const unsigned long keyHigh,
-		const unsigned long keyLow ):
-_keyHigh( keyHigh ),
-_keyLow( keyLow )
-{
-}
-		
-    unsigned long encrypt( const unsigned long data ){
-  unsigned long x = data;
-  unsigned long r;
-  int keyBitNo, index;
-  unsigned long keyBitVal,bitVal;
+class Keeloq {
+ public:
+  Keeloq(const unsigned long keyHigh, const unsigned long keyLow) : _keyHigh(keyHigh), _keyLow(keyLow) {}
 
-  for ( r = 0; r < 528; r++ )
-  {
-    keyBitNo = r & 63;
-    if(keyBitNo < 32)
-      keyBitVal = bitRead(_keyLow,keyBitNo);
-    else
-      keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
-    index = 1 * bitRead(x,1) + 2 * bitRead(x,9) + 4 * bitRead(x,20) + 8 * bitRead(x,26) + 16 * bitRead(x,31);
-    bitVal = bitRead(x,0) ^ bitRead(x, 16) ^ bitRead(KeeLoq_NLF,index) ^ keyBitVal;
-    x = (x>>1) ^ bitVal<<31;
-  }
-  return x;
-}
-    unsigned long decrypt( const unsigned long data ){
-  unsigned long x = data;
-  unsigned long r;
-  int keyBitNo, index;
-  unsigned long keyBitVal,bitVal;
+  unsigned long encrypt(const unsigned long data) {
+    unsigned long x = data;
+    unsigned long r;
+    int keyBitNo, index;
+    unsigned long keyBitVal, bitVal;
 
-  for (r = 0; r < 528; r++)
-  {
-    keyBitNo = (15-r) & 63;
-    if(keyBitNo < 32)
-      keyBitVal = bitRead(_keyLow,keyBitNo);
-    else
-      keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
-    index = 1 * bitRead(x,0) + 2 * bitRead(x,8) + 4 * bitRead(x,19) + 8 * bitRead(x,25) + 16 * bitRead(x,30);
-    bitVal = bitRead(x,31) ^ bitRead(x, 15) ^ bitRead(KeeLoq_NLF,index) ^ keyBitVal;
-    x = (x<<1) ^ bitVal;
+    for (r = 0; r < 528; r++) {
+      keyBitNo = r & 63;
+      if (keyBitNo < 32)
+        keyBitVal = bitRead(_keyLow, keyBitNo);
+      else
+        keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
+      index = 1 * bitRead(x, 1) + 2 * bitRead(x, 9) + 4 * bitRead(x, 20) + 8 * bitRead(x, 26) + 16 * bitRead(x, 31);
+      bitVal = bitRead(x, 0) ^ bitRead(x, 16) ^ bitRead(KeeLoq_NLF, index) ^ keyBitVal;
+      x = (x >> 1) ^ bitVal << 31;
+    }
+    return x;
   }
-  return x;
- }
-    
-  private:
-    unsigned long _keyHigh;
-	unsigned long _keyLow;
+  unsigned long decrypt(const unsigned long data) {
+    unsigned long x = data;
+    unsigned long r;
+    int keyBitNo, index;
+    unsigned long keyBitVal, bitVal;
+
+    for (r = 0; r < 528; r++) {
+      keyBitNo = (15 - r) & 63;
+      if (keyBitNo < 32)
+        keyBitVal = bitRead(_keyLow, keyBitNo);
+      else
+        keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
+      index = 1 * bitRead(x, 0) + 2 * bitRead(x, 8) + 4 * bitRead(x, 19) + 8 * bitRead(x, 25) + 16 * bitRead(x, 30);
+      bitVal = bitRead(x, 31) ^ bitRead(x, 15) ^ bitRead(KeeLoq_NLF, index) ^ keyBitVal;
+      x = (x << 1) ^ bitVal;
+    }
+    return x;
+  }
+
+ private:
+  unsigned long _keyHigh;
+  unsigned long _keyLow;
 };
-
 
 template<typename... Ts> class RCSwitchKeeloqAction : public RemoteTransmitterActionBase<Ts...> {
  public:
@@ -206,62 +187,53 @@ template<typename... Ts> class RCSwitchKeeloqAction : public RemoteTransmitterAc
   TEMPLATABLE_VALUE(__uint32_t, keyHigh);
   TEMPLATABLE_VALUE(__uint16_t, serial);
   void encode(RemoteTransmitData *dst, Ts... x) override {
- 
     auto keyLow = this->keyLow_.value(x...);
     auto keyHigh = this->keyHigh_.value(x...);
-/*    auto id = this->serial_.value(x...);
-    
-    Keeloq k1(keyLow, keyHigh);
-    auto device_key_msb = k1.decrypt(id | 0x60000000L);
-    auto device_key_lsb = k1.decrypt(id | 0x20000000L);
-    
-    Keeloq k(device_key_msb, device_key_lsb);
+    /*    auto id = this->serial_.value(x...);
 
-    const int disc                 = 0x0100; // 0x0100 for single channel remote
-*/
+        Keeloq k1(keyLow, keyHigh);
+        auto device_key_msb = k1.decrypt(id | 0x60000000L);
+        auto device_key_lsb = k1.decrypt(id | 0x20000000L);
+
+        Keeloq k(device_key_msb, device_key_lsb);
+
+        const int disc                 = 0x0100; // 0x0100 for single channel remote
+    */
     static uint16_t serial = this->serial_.value(x...);
 
-    static auto rtc = global_preferences->make_preference<uint32_t>(keyLow,true);
+    static auto rtc = global_preferences->make_preference<uint32_t>(keyLow, true);
     rtc.load(&serial);
-    auto rolling=serial;
+    auto rolling = serial;
     serial++;
     rtc.save(&serial);
-    
-//    unsigned int result = (disc << 16) | rolling;
 
-//    uint64_t enc = k.encrypt(result);
+    //    unsigned int result = (disc << 16) | rolling;
+
+    //    uint64_t enc = k.encrypt(result);
     uint64_t pack = codes_sav[rolling];
     pack <<= 32;
     pack |= keyLow;
-    
-    ESP_LOGD("keeloq", "code:%llx",pack);
 
-    
+    ESP_LOGD("keeloq", "code:%llx", pack);
 
-    
-//    std::stringstream s;
+    //    std::stringstream s;
 
-    for (size_t i = 0; i < 12; i++)
-    {
+    for (size_t i = 0; i < 12; i++) {
       dst->space(432);
       dst->mark(432);
     }
-    dst->space(4000-432);
+    dst->space(4000 - 432);
 
-    for(int i=64; i>0; i--)
-    {
-      if(pack & 0x8000000000000000l)
-      {
-          dst->mark(848);
-          dst->space(432);
-      }
-      else
-      {
-          dst->mark(432);
-          dst->space(848);
+    for (int i = 64; i > 0; i--) {
+      if (pack & 0x8000000000000000l) {
+        dst->mark(848);
+        dst->space(432);
+      } else {
+        dst->mark(432);
+        dst->space(848);
       }
       pack <<= 1;
-    }      
+    }
     dst->mark(432);
     dst->space(848);
     dst->mark(432);
@@ -270,14 +242,12 @@ template<typename... Ts> class RCSwitchKeeloqAction : public RemoteTransmitterAc
   }
 };
 
-
 template<typename... Ts> class RCSwitchTypeRawAction : public RemoteTransmitterActionState<Ts...> {
  public:
   TEMPLATABLE_VALUE(RCSwitchBase, protocol);
   TEMPLATABLE_VALUE(uint32_t, on);
   TEMPLATABLE_VALUE(uint32_t, off);
   TEMPLATABLE_VALUE(uint8_t, nbits);
-  
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     auto proto = this->protocol_.value(x...);
@@ -285,7 +255,7 @@ template<typename... Ts> class RCSwitchTypeRawAction : public RemoteTransmitterA
     auto on = this->on_.value(x...);
     auto off = this->off_.value(x...);
     auto nbits = this->nbits_.value(x...);
-    proto.transmit(dst, state?on:off, nbits);
+    proto.transmit(dst, state ? on : off, nbits);
   }
 };
 
@@ -294,7 +264,6 @@ template<typename... Ts> class RCSwitchTypeAAction : public RemoteTransmitterAct
   TEMPLATABLE_VALUE(RCSwitchBase, protocol);
   TEMPLATABLE_VALUE(std::string, group);
   TEMPLATABLE_VALUE(std::string, device);
-  
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     auto group = this->group_.value(x...);
@@ -317,7 +286,6 @@ template<typename... Ts> class RCSwitchTypeBAction : public RemoteTransmitterAct
   TEMPLATABLE_VALUE(RCSwitchBase, protocol);
   TEMPLATABLE_VALUE(uint8_t, address);
   TEMPLATABLE_VALUE(uint8_t, channel);
-  
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     auto address = this->address_.value(x...);
@@ -339,7 +307,6 @@ template<typename... Ts> class RCSwitchTypeCAction : public RemoteTransmitterAct
   TEMPLATABLE_VALUE(std::string, family);
   TEMPLATABLE_VALUE(uint8_t, group);
   TEMPLATABLE_VALUE(uint8_t, device);
-  
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     auto family = this->family_.value(x...);
@@ -362,7 +329,6 @@ template<typename... Ts> class RCSwitchTypeDAction : public RemoteTransmitterAct
   TEMPLATABLE_VALUE(RCSwitchBase, protocol);
   TEMPLATABLE_VALUE(std::string, group);
   TEMPLATABLE_VALUE(uint8_t, device);
-  
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     auto group = this->group_.value(x...);

@@ -7,7 +7,7 @@ namespace remote_base {
 static const char *const TAG = "remote.rc_switch";
 #define PULSE 424
 const RCSwitchBase RC_SWITCH_PROTOCOLS[9] = {RCSwitchBase(0, 0, 0, 0, 0, 0, false),
-                                             RCSwitchBase(PULSE, PULSE*31, PULSE, PULSE*3, PULSE*3, PULSE, false),
+                                             RCSwitchBase(PULSE, PULSE * 31, PULSE, PULSE * 3, PULSE * 3, PULSE, false),
                                              RCSwitchBase(650, 6500, 650, 1300, 1300, 650, false),
                                              RCSwitchBase(3000, 7100, 400, 1100, 900, 600, false),
                                              RCSwitchBase(380, 2280, 380, 1140, 1140, 380, false),
@@ -105,12 +105,13 @@ bool RCSwitchBase::expect_sync(RemoteReceiveData &src) const {
     // We can't peek a space at the beginning because signals starts with a low to high transition.
     // this long space at the beginning is the separation between the transmissions itself, so it is actually
     // added at the end kind of artificially (by the value given to "idle:" option by the user in the yaml)
-  //if (!src.peek_mark(this->sync_low_))
+    // if (!src.peek_mark(this->sync_low_))
     if (!src.peek_space(this->sync_high_))
- 
+
       return false;
     if (!src.peek_mark(this->sync_low_, 1))
-      return false;  }
+      return false;
+  }
   src.advance(2);
   return true;
 }
@@ -165,7 +166,7 @@ void RCSwitchBase::type_a_code(uint8_t switch_group, uint8_t switch_device, bool
   code |= switch_device ^ 0b11111;
   code <<= 2;
   code |= state ? 0b01 : 0b10;
-  //ESP_LOGD("simple_code_to_tristate","%x",code);
+  // ESP_LOGD("simple_code_to_tristate","%x",code);
   simple_code_to_tristate(code, 12, out_code);
   *out_nbits = 24;
 }
@@ -222,37 +223,29 @@ void RCSwitchBase::type_d_code(uint8_t group, uint8_t device, bool state, uint64
   *out_nbits = 24;
 }
 
-
-inline void calcola(uint8_t* code, uint8_t*rolling_base3,uint8_t* fixed_base3)
-{
-    int acc=0;
-    for (size_t i = 0; i < 10; i++)
-    {
-        *(code++)=rolling_base3[i]+1;
-        acc += rolling_base3[i];
-        acc += fixed_base3[i];
-        *(code++)=(acc % 3)+1;
-    }
+inline void calcola(uint8_t *code, uint8_t *rolling_base3, uint8_t *fixed_base3) {
+  int acc = 0;
+  for (size_t i = 0; i < 10; i++) {
+    *(code++) = rolling_base3[i] + 1;
+    acc += rolling_base3[i];
+    acc += fixed_base3[i];
+    *(code++) = (acc % 3) + 1;
+  }
 }
 
+void RCSwitchBase::type_secplus(uint32_t fixed, uint32_t rolling, uint8_t *out_code) {
+  uint8_t rolling_base3[20];
+  uint8_t fixed_base3[20];
+  for (int i = 19; i >= 0; i--) {
+    rolling_base3[i] = rolling % 3;
+    rolling /= 3;
+    fixed_base3[i] = fixed % 3;
+    fixed /= 3;
+  }
 
-void RCSwitchBase::type_secplus(uint32_t fixed, uint32_t rolling, uint8_t *out_code)
-{
-  
-    uint8_t rolling_base3[20];
-    uint8_t fixed_base3[20];
-    for (int i = 19; i >= 0; i--)
-    {
-        rolling_base3[i] = rolling % 3;
-        rolling /= 3;
-        fixed_base3[i] = fixed % 3;
-        fixed /= 3;
-    }
-
-    memset(out_code,0,40);
-    calcola(out_code,rolling_base3,fixed_base3);
-    calcola(out_code+20,rolling_base3+10,fixed_base3+10);
-
+  memset(out_code, 0, 40);
+  calcola(out_code, rolling_base3, fixed_base3);
+  calcola(out_code + 20, rolling_base3 + 10, fixed_base3 + 10);
 }
 
 uint64_t decode_binary_string(const std::string &data) {
@@ -276,7 +269,7 @@ uint64_t decode_binary_string_mask(const std::string &data) {
 bool RCSwitchRawReceiver::matches(RemoteReceiveData src) {
   uint64_t decoded_code;
   uint8_t decoded_nbits;
-  
+
   if (!this->protocol_.decode(src, &decoded_code, &decoded_nbits))
     return false;
   return decoded_nbits == this->nbits_ && (decoded_code & this->mask_) == (this->code_ & this->mask_);
