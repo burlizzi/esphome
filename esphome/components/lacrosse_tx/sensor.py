@@ -33,7 +33,9 @@ LacrosseTemperatureSensor = lacrosse_ns.class_("LacrosseSensor", cg.Component)
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(LacrosseTemperatureSensor),
-        cv.GenerateID(CONF_RECEIVER_ID): cv.use_id(remote_receiver.RemoteReceiverComponent),
+        cv.GenerateID(CONF_RECEIVER_ID): cv.use_id(
+            remote_receiver.RemoteReceiverComponent
+        ),
         cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             accuracy_decimals=1,
@@ -46,10 +48,10 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_HUMIDITY,
             state_class=STATE_CLASS_MEASUREMENT,
         ),
-        cv.Required(CONF_INDEX): cv.templatable (
+        cv.Required(CONF_INDEX): cv.templatable(
             cv.int_range(min=0, max=127),
         ),
-     }
+    }
 )
 
 
