@@ -1,8 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import (
-    climate,
-    remote_receiver,
     sensor,
     remote_base,
 )
@@ -16,7 +14,6 @@ from esphome.const import (
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
-    CONF_ID,
     DEVICE_CLASS_HUMIDITY,
     UNIT_PERCENT,
 )
