@@ -8,13 +8,12 @@ from esphome.components import (
 )
 from esphome.const import CONF_OUTPUT_ID
 from esphome.components.remote_base import CONF_RECEIVER_ID, CONF_TRANSMITTER_ID
-
-from .. import binary_ns
 from esphome.const import (
     CONF_GROUP,
     CONF_DEVICE,
     CONF_ON,
 )
+from .. import binary_ns
 
 CONF_OFF = "off"
 
