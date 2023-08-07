@@ -8,6 +8,7 @@
 
 #include <libssh/libssh.h>
 #include "libssh_esp32.h"
+#include "WiFi.h"
 
 namespace esphome {
 namespace serveo {
@@ -19,9 +20,10 @@ class Serveo : public Component {
   int port;
   ssh_session session;
   ssh_channel channel;
-
-  char buffer[256];
-  Serveo() : joined(false), session(NULL), channel(NULL) {}
+  
+char buffer[2560];
+  Serveo() : joined(false),session(NULL),channel(NULL) {}
+  
 
   int authenticate_console(ssh_session session) {
     int rc;
@@ -56,8 +58,13 @@ class Serveo : public Component {
     return rc;
   }
 
-  void setup() override {}
-  void connect() {
+  void setup() override {
+    
+    
+  }
+  float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
+  void connect()  {
+    disableLoopWDT();
     libssh_begin();
     session = ssh_new();
     if (session == NULL)
@@ -76,15 +83,21 @@ class Serveo : public Component {
       ssh_free(session);
       return;
     }
+    ESP_LOGD("ssh", "autenticate\n\n");
     if (authenticate_console(session))
       ESP_LOGD("ssh", "cannot autenticate\n\n");
 
+    ESP_LOGD("ssh", "ssh_channel_listen_forward");
+    //ssh_set_log_level(SSH_LOG_DEBUG);
     auto rc = ssh_channel_listen_forward(session, host, 80, NULL);
     if (rc != SSH_OK) {
       ESP_LOGD("ssh", "Error opening remote port: %s\n", ssh_get_error(session));
       return;
     }
-
+    //ssh_set_log_level(SSH_LOG_NONE);
+  
+    ESP_LOGD("ssh", "connected to host: %s.serveo.net",host);
+    
     // uint32_t* dev=(uint32_t*)DevEUI;
     // rtc = global_preferences->make_preference<sLoRa_Session>(RESTORE_STATE_VERSION^dev[0]^dev[1],true);
     // start();
@@ -102,52 +115,65 @@ class Serveo : public Component {
   void setPort(int port) { this->port = port; }
 
   void loop() override {
-    if (session == NULL)
-      return;
-    if (channel == NULL)
+    if (session==NULL)
+     connect();
+    if (ssh_get_status(session)==SSH_CLOSED)
+    {
+      ESP_LOGD("ssh","restart connection");
+     connect();
+    }
+    if (ssh_channel_is_closed(channel))
       channel = ssh_channel_accept_forward(session, 0, &port);
-    if (channel == NULL) {
-      // ESP_LOGD("ssh", "Error waiting for incoming connection: %s\n",              ssh_get_error(session));
+    if (channel == NULL)
+    {
       return;
     }
-    // if (channel==NULL)
 
-    const char *helloworld = ""
-                             "HTTP/1.1 200 OK\n"
-                             "Content-Type: text/html\n"
-                             "Content-Length: 113\n"
-                             "\n"
-                             "<html>\n"
-                             "  <head>\n"
-                             "    <title>Hello, World!</title>\n"
-                             "  </head>\n"
-                             "  <body>\n"
-                             "    <h1>Hello, World!</h1>\n"
-                             "  </body>\n"
-                             "</html>\n";
-    if (!ssh_channel_is_eof(channel)) {
-      ESP_LOGD("ssh", "read\n");
-
-      auto nbytes = ssh_channel_read_timeout(channel, buffer, sizeof(buffer), 0, 0);
-      ESP_LOGD("ssh", "read %d\n", nbytes);
-      if (nbytes <= 0) {
+    if (!ssh_channel_is_eof(channel))
+    {
+      ESP_LOGD("ssh","read\n");
+      
+      auto nbytes = ssh_channel_read_timeout(channel, buffer, sizeof(buffer), 0,0);
+      ESP_LOGD("ssh","read %d\n",nbytes);
+      if (nbytes <= 0)
+      {
         return;
       }
-      ESP_LOGD("ssh", "strncmp\n");
-      if (strncmp(buffer, "GET /", 5))
-        return;
-
-      nbytes = strlen(helloworld);
-      ESP_LOGD("ssh", "ssh_channel_write\n");
-      auto nwritten = ssh_channel_write(channel, helloworld, nbytes);
-      if (nwritten != nbytes) {
-        ESP_LOGD("ssh", "Error sending answer: %s\n", ssh_get_error(session));
-        ssh_channel_send_eof(channel);
-        ssh_channel_free(channel);
+      WiFiClient client;
+       if (!client.connect("127.0.0.1", 80)) {
+        Serial.println("Connection failed.");
+        
         return;
       }
-      ESP_LOGD("ssh", "Sent answer\n"); /**/
-      channel = NULL;
+      Serial.println("Connected.");
+      client.write(buffer,nbytes);
+        //Serial.println(buffer);
+      int maxloops = 0;
+      while (!client.available() && maxloops < 1000)
+      {
+        maxloops++;
+        delay(1); //delay 1 msec
+      }  
+      while (client.available() > 0)
+      {
+
+        //read back one line from the server
+        nbytes = client.read((unsigned char*)buffer, sizeof(buffer));
+        //Serial.println(buffer);
+         ESP_LOGD("ssh","ssh_channel_write\n");
+        auto nwritten = ssh_channel_write(channel, buffer, nbytes);
+        if (nwritten != nbytes)
+        {
+          ESP_LOGD("ssh", "Error sending answer: %s\n",
+                  ssh_get_error(session));
+          ssh_channel_send_eof(channel);
+          ssh_channel_free(channel);
+          return;
+        }
+      }
+      client.stop();
+      ESP_LOGD("ssh","Sent answer\n");/**/
+      channel=NULL;
     }
   }
 

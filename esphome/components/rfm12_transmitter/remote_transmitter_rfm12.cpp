@@ -4,7 +4,7 @@
 
 #include <sstream>
 
-#include <Arduino.h>
+//#include <Arduino.h>
 #include <SPI.h>
 // RF12 command codes
 #define RF_RECV_CONTROL 0x94A0

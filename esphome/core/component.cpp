@@ -199,7 +199,7 @@ WarnIfComponentBlockingGuard::WarnIfComponentBlockingGuard(Component *component)
     : started_(millis()), component_(component) {}
 WarnIfComponentBlockingGuard::~WarnIfComponentBlockingGuard() {
   uint32_t now = millis();
-  if (now - started_ > 50) {
+  if (now - started_ > 500) {
     const char *src = component_ == nullptr ? "<null>" : component_->get_component_source();
     ESP_LOGW(TAG, "Component %s took a long time for an operation (%.2f s).", src, (now - started_) / 1e3f);
     ESP_LOGW(TAG, "Components should block for at most 20-30ms.");
