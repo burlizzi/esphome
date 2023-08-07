@@ -61,10 +61,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-
-    template_ = await cg.templatable(
-            config[CONF_INDEX], (),int
-        )
+    template_ = await cg.templatable(config[CONF_INDEX], (), int)
     cg.add(var.set_index(template_))
     cg.add(hub.register_listener(var))
     if CONF_TEMPERATURE in config:
