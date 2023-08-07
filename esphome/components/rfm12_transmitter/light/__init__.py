@@ -2,12 +2,11 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import (
     light,
-    output,
     remote_base,
     rfm12_transmitter,
     remote_receiver,
 )
-from esphome.const import CONF_OUTPUT_ID, CONF_OUTPUT, CONF_LIGHT_ID
+from esphome.const import CONF_OUTPUT_ID
 from esphome.components.remote_base import CONF_RECEIVER_ID, CONF_TRANSMITTER_ID
 
 from .. import binary_ns
