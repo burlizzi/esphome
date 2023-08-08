@@ -1,3 +1,4 @@
+#pragma once
 #ifndef WemoManager_h
 #define WemoManager_h
 
@@ -47,11 +48,8 @@ class WemoManager : public esphome::Component, public AsyncWebHandler {
   bool canHandle(AsyncWebServerRequest *request) override { return true; }
   // void handleRequest(AsyncWebServerRequest *request) override;
   void handleBody(AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total) override {
-    ESP_LOGE("TAG", "body: %s \n", req->url().c_str());
     std::string request;
     request.assign((const char *) data, len);
-
-    ESP_LOGE("TAG", "body=%s\n", request.c_str());
   }
 };
 }  // namespace wemo

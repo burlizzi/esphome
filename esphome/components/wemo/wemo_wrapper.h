@@ -1,3 +1,4 @@
+#pragma once
 #ifndef WemoWrapper_h
 #define WemoWrapper_h
 

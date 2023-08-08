@@ -27,14 +27,12 @@ struct PIDController {
     // d(t) := K_d * de(t)/dt
     float derivative = 0.0f;
     if (fabs(process_value - previous_value_) > 0.1 || (millis() - this->last_time_) > 600000) {
-      ESP_LOGI("pid", "processing %f-%f %d,%d", process_value, previous_value_, millis(), this->last_time_);
       dt = calculate_relative_time_();
       if (dt != 0.0f)
         derivative = (previous_value_ - process_value) / dt;
       previous_value_ = process_value;
       derivative_term = kd * derivative;
     }
-    // else  ESP_LOGI("pid","non ancora %f-%f %d,%d",process_value,previous_value_,millis() , this->last_time_);
 
     // process_value=previous_value_*0.95+process_value*0.05;
 

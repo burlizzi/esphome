@@ -114,7 +114,6 @@ template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterA
     std::stringstream s;
     for (int32_t item : code)
       s << item << ',';
-    ESP_LOGD("secplus", "code:%d,%s", startrolling, s.str().c_str());
     dst->space(static_cast<uint32_t>(1500));
     dst->mark(static_cast<uint32_t>(500));
     for (size_t i = 0; i < 20; i++) {
@@ -132,7 +131,7 @@ template<typename... Ts> class RCSwitchSecplusAction : public RemoteTransmitterA
 };
 
 #define KeeLoq_NLF 0x3A5C742EUL
-#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+#define br(value, bit) (((value) >> (bit)) & 0x01)
 
 class Keeloq {
  public:
@@ -147,11 +146,11 @@ class Keeloq {
     for (r = 0; r < 528; r++) {
       keyBitNo = r & 63;
       if (keyBitNo < 32)
-        keyBitVal = bitRead(_keyLow, keyBitNo);
+        keyBitVal = br(_keyLow, keyBitNo);
       else
-        keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
-      index = 1 * bitRead(x, 1) + 2 * bitRead(x, 9) + 4 * bitRead(x, 20) + 8 * bitRead(x, 26) + 16 * bitRead(x, 31);
-      bitVal = bitRead(x, 0) ^ bitRead(x, 16) ^ bitRead(KeeLoq_NLF, index) ^ keyBitVal;
+        keyBitVal = br(_keyHigh, keyBitNo - 32);
+      index = 1 * br(x, 1) + 2 * br(x, 9) + 4 * br(x, 20) + 8 * br(x, 26) + 16 * br(x, 31);
+      bitVal = br(x, 0) ^ br(x, 16) ^ br(KeeLoq_NLF, index) ^ keyBitVal;
       x = (x >> 1) ^ bitVal << 31;
     }
     return x;
@@ -165,11 +164,11 @@ class Keeloq {
     for (r = 0; r < 528; r++) {
       keyBitNo = (15 - r) & 63;
       if (keyBitNo < 32)
-        keyBitVal = bitRead(_keyLow, keyBitNo);
+        keyBitVal = br(_keyLow, keyBitNo);
       else
-        keyBitVal = bitRead(_keyHigh, keyBitNo - 32);
-      index = 1 * bitRead(x, 0) + 2 * bitRead(x, 8) + 4 * bitRead(x, 19) + 8 * bitRead(x, 25) + 16 * bitRead(x, 30);
-      bitVal = bitRead(x, 31) ^ bitRead(x, 15) ^ bitRead(KeeLoq_NLF, index) ^ keyBitVal;
+        keyBitVal = br(_keyHigh, keyBitNo - 32);
+      index = 1 * br(x, 0) + 2 * br(x, 8) + 4 * br(x, 19) + 8 * br(x, 25) + 16 * br(x, 30);
+      bitVal = br(x, 31) ^ br(x, 15) ^ br(KeeLoq_NLF, index) ^ keyBitVal;
       x = (x << 1) ^ bitVal;
     }
     return x;
@@ -208,13 +207,10 @@ template<typename... Ts> class RCSwitchKeeloqAction : public RemoteTransmitterAc
     rtc.save(&serial);
 
     //    unsigned int result = (disc << 16) | rolling;
-    ESP_LOGI("keeloq", "serial:%d", serial);
     //    uint64_t enc = k.encrypt(result);
     uint64_t pack = codes_sav[rolling];
     pack <<= 32;
     pack |= keyLow;
-
-    ESP_LOGD("keeloq", "code:%llx", pack);
 
     //    std::stringstream s;
 

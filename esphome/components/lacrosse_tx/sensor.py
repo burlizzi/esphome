@@ -22,7 +22,7 @@ from esphome.const import (
 AUTO_LOAD = ["sensor", "remote_base"]
 CODEOWNERS = ["@luca"]
 
-lacrosse_ns = cg.esphome_ns.namespace("lacrosse")
+lacrosse_ns = cg.esphome_ns.namespace("lacrosse_tx")
 
 LacrosseTemperatureSensor = lacrosse_ns.class_("LacrosseSensor", cg.Component)
 

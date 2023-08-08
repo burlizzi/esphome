@@ -5,7 +5,8 @@ namespace esphome {
 namespace remote_base {
 
 static const char *const TAG = "remote.rc_switch";
-#define PULSE 424
+static const uint16_t PULSE = 424;
+
 const RCSwitchBase RC_SWITCH_PROTOCOLS[9] = {RCSwitchBase(0, 0, 0, 0, 0, 0, false),
                                              RCSwitchBase(PULSE, PULSE * 31, PULSE, PULSE * 3, PULSE * 3, PULSE, false),
                                              RCSwitchBase(650, 6500, 650, 1300, 1300, 650, false),

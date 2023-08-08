@@ -3,9 +3,9 @@
 #include "esphome/core/application.h"
 
 namespace esphome {
-namespace remote_transmitter {
+namespace rfm12_transmitter {
 
 static const char *const TAG = "rfm12_transmitter";
 
-}  // namespace remote_transmitter
+}  // namespace rfm12_transmitter
 }  // namespace esphome

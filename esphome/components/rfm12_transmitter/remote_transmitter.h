@@ -5,7 +5,7 @@
 //#include "esphome/components/spi/spi.h"
 
 namespace esphome {
-namespace remote_transmitter {
+namespace rfm12_transmitter {
 
 class RemoteTransmitterComponent : public Component,
                                    public remote_base::RemoteTransmitterBase
@@ -39,5 +39,5 @@ class RemoteTransmitterComponent : public Component,
   // remote_base::RemoteTransmitData temp_;
 };
 
-}  // namespace remote_transmitter
+}  // namespace rfm12_transmitter
 }  // namespace esphome

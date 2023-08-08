@@ -6,9 +6,9 @@
 #include "esphome/components/remote_base/remote_base.h"
 #include "esphome/components/rfm12_transmitter/remote_transmitter.h"
 #include "esphome/components/remote_receiver/remote_receiver.h"
-#define PULSE 424
+static const uint16_t PULSE = 424;
 namespace esphome {
-namespace binary {
+namespace rfm12_transmitter {
 
 static const char *const TAG = "rflight";
 class BinaryLightRemoteSensor : public remote_base::RemoteReceiverBinarySensorBase {
@@ -23,19 +23,16 @@ class BinaryLightRemoteSensor : public remote_base::RemoteReceiverBinarySensorBa
   }
   virtual void setup_state(light::LightState *state) {
     state_ = state;
-    ESP_LOGD(TAG, "registered");
   }
 
  protected:
   bool matches(remote_base::RemoteReceiveData src) override {
-    // ESP_LOGD(TAG,"something happened");
 
     uint64_t decoded_code;
     uint8_t decoded_nbits;
 
     if (!remote_base::RC_SWITCH_PROTOCOLS[1].decode(src, &decoded_code, &decoded_nbits))
       return false;
-    // ESP_LOGD(TAG,"decoded %llx %d bits",decoded_code,decoded_nbits);
 
     if (!(decoded_nbits == nbits_ && (decoded_code & this->mask_) == (code_ & this->mask_)))
       return false;
@@ -44,8 +41,6 @@ class BinaryLightRemoteSensor : public remote_base::RemoteReceiverBinarySensorBa
 
     bool new_state = (decoded_code & on_mask_) == (code_ & on_mask_);
 
-    ESP_LOGD(TAG, "matches!! %llx->%d", decoded_code, new_state);
-    // ESP_LOGD(TAG,"(%llx==%llx) %d bits on_mask=%llx",code_&on_mask_,decoded_code&on_mask_,nbits_,on_mask_);
     state_->current_values_as_binary(&current_state);
     if (new_state != current_state) {
       state_->remote_values.set_state(new_state);

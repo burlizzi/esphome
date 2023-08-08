@@ -9,13 +9,10 @@ from esphome.const import (
     CONF_FREQUENCY,
 )
 
-binary_ns = cg.esphome_ns.namespace("binary")
-
-
 AUTO_LOAD = ["remote_base"]
 # DEPENDENCIES = ["spi"]
 
-remote_transmitter_ns = cg.esphome_ns.namespace("remote_transmitter")
+remote_transmitter_ns = cg.esphome_ns.namespace("rfm12_transmitter")
 RemoteTransmitterComponent = remote_transmitter_ns.class_(
     "RemoteTransmitterComponent", remote_base.RemoteTransmitterBase, cg.Component
 )

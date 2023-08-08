@@ -7,45 +7,47 @@
 //#include <Arduino.h>
 #include <SPI.h>
 // RF12 command codes
-#define RF_RECV_CONTROL 0x94A0
-#define RF_RECEIVER_ON 0x82DD
-#define RF_XMITTER_ON 0x823D
-#define RF_IDLE_MODE 0x820D
-#define RF_SLEEP_MODE 0x8205
-#define RF_WAKEUP_MODE 0x8207
-#define RF_TXREG_WRITE 0xB800
-#define RF_RX_FIFO_READ 0xB000
-#define RF_WAKEUP_TIMER 0xE000
+static const uint16_t RF_RECV_CONTROL = 0x94A0;
+static const uint16_t RF_RECEIVER_ON = 0x82DD;
+static const uint16_t RF_XMITTER_ON = 0x823D;
+static const uint16_t RF_IDLE_MODE = 0x820D;
+static const uint16_t RF_SLEEP_MODE = 0x8205;
+static const uint16_t RF_WAKEUP_MODE = 0x8207;
+static const uint16_t RF_TXREG_WRITE = 0xB800;
+static const uint16_t RF_RX_FIFO_READ = 0xB000;
+static const uint16_t RF_WAKEUP_TIMER = 0xE000;
 
-#define CS_PIN 5
-#define RFM_IRQ 17
-//#define RCV             16
-#define TX 26
+static const uint8_t CS_PIN = 5;
+static const uint8_t RFM_IRQ = 17;
+static const uint8_t TX = 26;
 
-#define RF12_433MHZ 1  ///< RFM12B 433 MHz frequency band.
-#define RF12_868MHZ 2  ///< RFM12B 868 MHz frequency band.
-#define RF12_915MHZ 3  ///< RFM12B 915 MHz frequency band.
+static const uint8_t RF12_433MHZ = 1;
+static const uint8_t RF12_868MHZ = 2;
+static const uint8_t RF12_915MHZ = 3;
+
+
 
 SPIClass vspi(VSPI);
 
 static void rf12_xfer(uint16_t cmd) {
   // writing can take place at full speed, even 8 MHz works
-  digitalWrite(CS_PIN, LOW);
+  digital_write(CS_PIN, LOW);
   vspi.transfer16(cmd);
-  digitalWrite(CS_PIN, HIGH);
+  digital_write(CS_PIN, HIGH);
   // delay(1);
 }
 
 void rf12_onOff(uint8_t value) {
   rf12_xfer(value ? RF_XMITTER_ON : RF_IDLE_MODE);
-  // digitalWrite(TX, value);
+  // digital_write(TX, value);
 }
 #define LOGI(X, ...) esp_log_printf_(ESPHOME_LOG_LEVEL_INFO, "l", __LINE__, X, ##__VA_ARGS__)
 
-#define REGISTER_DETAIL 1
+
+static const uint8_t REGISTER_DETAIL = 1;
 
 namespace esphome {
-namespace remote_transmitter {
+namespace rfm12_transmitter {
 
 static const char *const TAG = "rfm12_transmitter";
 
@@ -64,10 +66,10 @@ void RemoteTransmitterComponent::readAllRegs() {
 
   Serial.println("Address - HEX - BIN");
   for (uint8_t regAddr = 1; regAddr <= 2; regAddr++) {
-    digitalWrite(CS_PIN, LOW);
+    digital_write(CS_PIN, LOW);
     vspi.transfer(regAddr & 0x7F);  // send address + r/w bit
     regVal = vspi.transfer(0);
-    digitalWrite(CS_PIN, HIGH);
+    digital_write(CS_PIN, HIGH);
 
     Serial.print(regAddr, HEX);
     Serial.print(" - ");
@@ -315,7 +317,7 @@ void RemoteTransmitterComponent::readAllRegs() {
     }
 #endif
   }
-  digitalWrite(CS_PIN, HIGH);
+  digital_write(CS_PIN, HIGH);
 }
 
 uint8_t RemoteTransmitterComponent::rf12_initialize(uint8_t id, uint8_t band, float frequency, uint8_t g) {
@@ -330,7 +332,7 @@ uint8_t RemoteTransmitterComponent::rf12_initialize(uint8_t id, uint8_t band, fl
 
   // wait until RFM12B is out of power-up reset, this takes several *seconds*
   rf12_xfer(RF_TXREG_WRITE);  // in case we're still in OOK mode
-                              // while (digitalRead(RFM_IRQ) == 0)
+                              // while (digital_read(RFM_IRQ) == 0)
   for (size_t i = 0; i < 100; i++) {
     rf12_xfer(0x0000);
   }
@@ -384,9 +386,9 @@ void RemoteTransmitterComponent::rf12_init_OOK(float frequency) {
 void RemoteTransmitterComponent::setup() {
   vspi.setFrequency(80 * 1000000);
   vspi.begin();
-  pinMode(CS_PIN, OUTPUT);  // VSPI SS
-  pinMode(TX, OUTPUT);      // VSPI SS
-  // digitalWrite(23, LOW);
+  pin_mode(CS_PIN, OUTPUT);  // VSPI SS
+  pin_mode(TX, OUTPUT);      // VSPI SS
+  // digital_write(23, LOW);
 
   rf12_initialize(0, RF12_433MHZ, frequency_);
   // rf12_initialize(0, RF12_868MHZ);
@@ -446,7 +448,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
 
   // rf12_xfer(RF_XMITTER_ON);
 
-  digitalWrite(TX, HIGH);
+  digital_write(TX, HIGH);
   for (uint32_t i = 0; i < send_times; i++) {
     {
       InterruptLock lock;
@@ -465,11 +467,11 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
       delay_microseconds_safe(send_wait);
     }
   }
-  digitalWrite(TX, LOW);
+  digital_write(TX, LOW);
 
   rf12_xfer(RF_IDLE_MODE);
   rf12_init_OOK(this->frequency_);
 }
 
-}  // namespace remote_transmitter
+}  // namespace rfm12_transmitter
 }  // namespace esphome

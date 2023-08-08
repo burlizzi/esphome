@@ -13,11 +13,11 @@ from esphome.const import (
     CONF_DEVICE,
     CONF_ON,
 )
-from .. import binary_ns
+from .. import remote_transmitter_ns
 
 CONF_OFF = "off"
 
-BinaryLightOutput = binary_ns.class_("RfmLightOutput", light.LightOutput)
+BinaryLightOutput = remote_transmitter_ns.class_("RfmLightOutput", light.LightOutput)
 
 CONFIG_SCHEMA = light.BINARY_LIGHT_SCHEMA.extend(
     {

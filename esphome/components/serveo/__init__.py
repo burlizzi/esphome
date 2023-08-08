@@ -3,10 +3,11 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.const import CONF_ID
 
+from esphome.const import CONF_PORT, CONF_KEY
+
+
 CONF_HOST = "host"
-CONF_PORT = "port"
-CONF_KEY = "key"
-CONF_DATA_ACTION = "class"
+CONF_CLASS = "class"
 
 # DEPENDENCIES = ["spi"]
 
@@ -22,7 +23,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_HOST): cv.string,
         cv.Required(CONF_PORT): cv.int_,
         cv.Required(CONF_KEY): cv.string,
-        cv.Optional(CONF_DATA_ACTION): automation.validate_automation(single=True),
+        cv.Optional(CONF_CLASS): automation.validate_automation(single=True),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -37,10 +38,10 @@ async def to_code(config):
     cg.add(var.setHost(config[CONF_HOST]))
     cg.add(var.setPort(config[CONF_PORT]))
 
-    if CONF_DATA_ACTION in config:
+    if CONF_CLASS in config:
         await automation.build_automation(
             var.data_trigger(),
             [(int, "port"), (int, "rssi"), (cg.std_string, "data")],
-            config[CONF_DATA_ACTION],
+            config[CONF_CLASS],
         )
     # cg.add_global(cg.RawStatement(f'const sRFM_pins RFM_pins = {{.CS={config[CONF_CS_PIN]},.RST={config[CONF_RESET]},.DIO0={config[CONF_DIO0]},.DIO1={config[CONF_DIO1]},.DIO2={config[CONF_DIO2]}}};'))
