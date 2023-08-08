@@ -140,6 +140,7 @@ esphome/components/kalman_combinator/* @Cat-Ion
 esphome/components/key_collector/* @ssieb
 esphome/components/key_provider/* @ssieb
 esphome/components/kuntze/* @ssieb
+esphome/components/lacrosse_tx/* @luca
 esphome/components/lcd_menu/* @numo68
 esphome/components/ld2410/* @sebcaps
 esphome/components/ledc/* @OttoWinter
