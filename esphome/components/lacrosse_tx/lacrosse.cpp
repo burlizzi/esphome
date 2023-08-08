@@ -2,7 +2,6 @@
 
 namespace esphome {
 namespace lacrosse_tx {
-static const char *const TAG = "lacrosse";
 
 bool LacrosseSensor::on_receive(remote_base::RemoteReceiveData data) {
   if (data.size() != 88) {

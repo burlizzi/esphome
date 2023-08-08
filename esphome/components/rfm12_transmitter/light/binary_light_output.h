@@ -82,7 +82,7 @@ class RfmLightOutput : public light::LightOutput {
     action = aaction;
     sensor.set_on_off(on, off);
   }
-  void set_transmitter(remote_transmitter::RemoteTransmitterComponent *transmitter) { action->set_parent(transmitter); }
+  void set_transmitter(rfm12_transmitter::RemoteTransmitterComponent *transmitter) { action->set_parent(transmitter); }
 
   void set_receiver(remote_receiver::RemoteReceiverComponent *receiver) { receiver->register_listener(&sensor); }
   void write_state(light::LightState *state) override {
