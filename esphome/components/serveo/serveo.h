@@ -68,18 +68,19 @@ class Serveo : public Component {
   void setPort(int port) { this->port = port; }
 
   void loop() override;
-  }
+}
 
-  Trigger<int, int, std::string> *data_trigger() {
-    if (!this->data_trigger_)
-      this->data_trigger_ = make_unique<Trigger<int, int, std::string>>();
-    return this->data_trigger_.get();
-  }
+Trigger<int, int, std::string>
+    *data_trigger() {
+  if (!this->data_trigger_)
+    this->data_trigger_ = make_unique<Trigger<int, int, std::string>>();
+  return this->data_trigger_.get();
+}
 
- protected:
-  std::unique_ptr<Trigger<int, int, std::string>> data_trigger_{nullptr};
-  static const uint32_t RESTORE_STATE_VERSION = 0x2a5a2c13UL;
-  ESPPreferenceObject rtc;
+protected:
+std::unique_ptr<Trigger<int, int, std::string>> data_trigger_{nullptr};
+static const uint32_t RESTORE_STATE_VERSION = 0x2a5a2c13UL;
+ESPPreferenceObject rtc;
 };
 }  // namespace serveo
 }  // namespace esphome

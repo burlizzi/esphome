@@ -30,5 +30,5 @@ class LacrosseSensor : public Component, public remote_base::RemoteReceiverListe
   std::function<int()> getter_;
 };
 
-}  // namespace lacrosse
+}  // namespace lacrosse_tx
 }  // namespace esphome

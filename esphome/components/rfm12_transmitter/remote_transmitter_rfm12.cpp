@@ -25,8 +25,6 @@ static const uint8_t RF12_433MHZ = 1;
 static const uint8_t RF12_868MHZ = 2;
 static const uint8_t RF12_915MHZ = 3;
 
-
-
 SPIClass vspi(VSPI);
 
 static void rf12_xfer(uint16_t cmd) {
@@ -42,7 +40,6 @@ void rf12_onOff(uint8_t value) {
   // digital_write(TX, value);
 }
 #define LOGI(X, ...) esp_log_printf_(ESPHOME_LOG_LEVEL_INFO, "l", __LINE__, X, ##__VA_ARGS__)
-
 
 static const uint8_t REGISTER_DETAIL = 1;
 

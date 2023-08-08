@@ -11,7 +11,6 @@
 
 void xxx(const char *format, ...);
 
-
 namespace esphome {
 namespace lora {
 class Lora : public Component, public LoRaWANClass, public Controller {

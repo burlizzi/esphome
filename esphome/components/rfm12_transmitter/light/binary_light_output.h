@@ -21,13 +21,10 @@ class BinaryLightRemoteSensor : public remote_base::RemoteReceiverBinarySensorBa
     on_mask_ = on ^ off;
     mask_ = ~on_mask_;
   }
-  virtual void setup_state(light::LightState *state) {
-    state_ = state;
-  }
+  virtual void setup_state(light::LightState *state) { state_ = state; }
 
  protected:
   bool matches(remote_base::RemoteReceiveData src) override {
-
     uint64_t decoded_code;
     uint8_t decoded_nbits;
 
@@ -102,5 +99,5 @@ class RfmLightOutput : public light::LightOutput {
   BinaryLightRemoteSensor sensor;
 };
 
-}  // namespace binary
+}  // namespace rfm12_transmitter
 }  // namespace esphome

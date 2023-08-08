@@ -58,7 +58,7 @@ class Lora : public Component, public LoRaWANClass, public Controller {
       xxx("Error=%d", state);
     }
 
-    pinMode(33, OUTPUT);
+    pin_mode(33, OUTPUT);
 
     for (size_t i = 0; i < 6; i++) {
       delayMicroseconds(12000);
@@ -78,7 +78,7 @@ class Lora : public Component, public LoRaWANClass, public Controller {
       }
       // xxx(ss.str().c_str());
     }
-    pinMode(33, INPUT);
+    pin_mode(33, INPUT);
 
     state = radio.standby();
     if (state == RADIOLIB_ERR_NONE) {
@@ -114,9 +114,9 @@ class Lora : public Component, public LoRaWANClass, public Controller {
 
           if (!joined) {
             ESP_LOGI("lora", "failed, wait 10 sec");
-            for (size_t z = 0; z < 10; z++) {
+            for (size_t z = 0; z < 1000; z++) {
               App.feed_wdt();
-              delay(1000);
+              delay(10);
               yield();
             }
           }
@@ -162,7 +162,7 @@ class Lora : public Component, public LoRaWANClass, public Controller {
     update();
     auto recvStatus = readData(outStr);
     if (recvStatus) {
-      ESP_LOGI("lora", "====>>(%d) rssi(%d) %s", Message_Rx.Frame_Port, getRssi(), outStr); // NOLINT
+      ESP_LOGI("lora", "====>>(%d) rssi(%d) %s", Message_Rx.Frame_Port, getRssi(), outStr);  // NOLINT
       if (data_trigger_)
         data_trigger_->trigger(Message_Rx.Frame_Port, getRssi(), std::string(outStr, recvStatus));
     }
@@ -185,13 +185,13 @@ class Lora : public Component, public LoRaWANClass, public Controller {
   }
 #endif
 #ifdef USE_COVER
-  void on_cover_update(cover::Cover *obj) override { ESP_LOGE("lora", "not implemented"); } // NOLINT
+  void on_cover_update(cover::Cover *obj) override { ESP_LOGE("lora", "not implemented"); }  // NOLINT
 #endif
 #ifdef USE_FAN
-  void on_fan_update(fan::FanState *obj) override { ESP_LOGE("lora", "not implemented"); } // NOLINT
+  void on_fan_update(fan::FanState *obj) override { ESP_LOGE("lora", "not implemented"); }  // NOLINT
 #endif
 #ifdef USE_LIGHT
-  void on_light_update(light::LightState *obj) override { ESP_LOGE("lora", "not implemented"); } // NOLINT
+  void on_light_update(light::LightState *obj) override { ESP_LOGE("lora", "not implemented"); }  // NOLINT
 #endif
 #ifdef USE_SENSOR
   void on_sensor_update(sensor::Sensor *obj, float state) { send(obj->get_object_id_hash(), state); }
@@ -205,7 +205,7 @@ class Lora : public Component, public LoRaWANClass, public Controller {
   }
 #endif
 #ifdef USE_CLIMATE
-  void on_climate_update(climate::Climate *obj) override { ESP_LOGE("lora", "not implemented"); } // NOLINT
+  void on_climate_update(climate::Climate *obj) override { ESP_LOGE("lora", "not implemented"); }  // NOLINT
 #endif
 #ifdef USE_NUMBER
   void on_number_update(number::Number *obj, float state) override { /*send(obj->get_object_id_hash(),state );*/
