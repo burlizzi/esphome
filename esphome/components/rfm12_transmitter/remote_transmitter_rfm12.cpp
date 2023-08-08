@@ -465,7 +465,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
 
   //rf12_xfer(RF_XMITTER_ON);
 
-  gpio_set_level(TX_PIN, HIGH); 
+  gpio_set_level(TX_PIN, 1); 
   for (uint32_t i = 0; i < send_times; i++) {
     {
       InterruptLock lock;
@@ -484,7 +484,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
       delay_microseconds_safe(send_wait);
     }
   }
-  gpio_set_level(TX_PIN, LOW); 
+  gpio_set_level(TX_PIN, 0); 
 
     rf12_xfer(RF_IDLE_MODE);
     rf12_init_OOK (this->frequency_);
