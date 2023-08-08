@@ -9,7 +9,7 @@ namespace wemo {
 static const char *const TAG = "wemo";
 
 String WemoWrapper::state() {
-  switch (type_) {
+  switch (wemotype) {
     case WEMO_BRIDGE: {
       auto br = static_cast<switch_::Switch *>(device_);
       ESP_LOGD(TAG, "bridge? %p", br);
@@ -43,7 +43,7 @@ String WemoWrapper::state() {
 }
 
 void WemoWrapper::on() {
-  switch (type_) {
+  switch (wemotype) {
 #ifdef USE_SWITCH
     case WEMO_SWITCH: {
       auto sw = static_cast<switch_::Switch *>(device_);
@@ -67,7 +67,7 @@ void WemoWrapper::on() {
 }
 
 void WemoWrapper::off() {
-  switch (type_) {
+  switch (wemotype) {
 #ifdef USE_SWITCH
     case WEMO_SWITCH: {
       auto sw = static_cast<switch_::Switch *>(device_);
