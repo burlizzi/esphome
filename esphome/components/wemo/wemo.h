@@ -2,7 +2,6 @@
 #ifndef WemoManager_h
 #define WemoManager_h
 
-#include <Arduino.h>
 #ifdef USE_ESP32_FRAMEWORK_ARDUINO
 #include <WiFi.h>
 #endif
@@ -13,9 +12,10 @@
 #include "esphome/core/log.h"
 #include "wemo_wrapper.h"
 
-#include <Udp.h>
+//#include <Udp.h>
 #include "esphome/core/entity_base.h"
 #include "esphome/core/component.h"
+#include "esphome/components/socket/socket.h"
 #include "esphome/components/web_server_base/web_server_base.h"
 #ifdef USE_SWITCH
 #include "esphome/components/switch/switch.h"
@@ -33,11 +33,11 @@ namespace esphome {
 namespace wemo {
 class WemoManager : public esphome::Component, public AsyncWebHandler {
  private:
-  std::unique_ptr<UDP> udp_;
   std::vector<WemoWrapper> devices;
 
  public:
   web_server_base::WebServerBase server_;
+  std::unique_ptr<socket::Socket> socket_;
   WemoManager() {}
   void setup() override;
   void loop() override;

@@ -37,9 +37,9 @@ static const char *const TAG = "rfm12_transmitter";
 
  void RemoteTransmitterComponent::rf12_xfer (uint16_t cmd) {
     // writing can take place at full speed, even 8 MHz works
-    enable();   
+    enable();  
     transfer_byte(cmd);
-    disable();   
+    disable();  
     //delay(1);
 }
 
@@ -54,7 +54,7 @@ void RemoteTransmitterComponent::readAllRegs()
 {
   uint8_t regVal;
 
-#if REGISTER_DETAIL 
+#if REGISTER_DETAIL
   int capVal;
 
   //... State Variables for intelligent decoding
@@ -63,14 +63,14 @@ void RemoteTransmitterComponent::readAllRegs()
   int freqDev = 0;
   long freqCenter = 0;
 #endif
-  
+ 
   //Serial.println("Address - HEX - BIN");
   for (uint8_t regAddr = 1; regAddr <= 2; regAddr++)
   {
-    enable();  
+    enable(); 
     transfer_byte(regAddr & 0x7F); // send address + r/w bit
     regVal = transfer_byte(0);
-    disable();  
+    disable(); 
 
     /*Serial.print(regAddr, HEX);
     Serial.print(" - ");
@@ -78,8 +78,8 @@ void RemoteTransmitterComponent::readAllRegs()
     Serial.print(" - ");
     Serial.println(regVal,BIN);
 */
-#if REGISTER_DETAIL 
-    switch ( regAddr ) 
+#if REGISTER_DETAIL
+    switch ( regAddr )
     {
         case 0x1 : {
             ESP_LOGCONFIG(TAG, "Controls the automatic Sequencer ( see section 4.2 )\nSequencerOff : " );
@@ -88,19 +88,19 @@ void RemoteTransmitterComponent::readAllRegs()
             } else {
                 ESP_LOGCONFIG(TAG, "0 -> Operating mode as selected with Mode bits in RegOpMode is automatically reached with the Sequencer\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG, "\nEnables Listen mode, should be enabled whilst in Standby mode:\nListenOn : " );
             if ( 0x40 & regVal ) {
                 ESP_LOGCONFIG(TAG, "1 -> On\n" );
             } else {
                 ESP_LOGCONFIG(TAG, "0 -> Off ( see section 4.3)\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG, "\nAborts Listen mode when set together with ListenOn=0 See section 4.3.4 for details (Always reads 0.)\n" );
             if ( 0x20 & regVal ) {
                 ESP_LOGCONFIG(TAG, "ERROR - ListenAbort should NEVER return 1 this is a write only register\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG,"\nTransceiver's operating modes:\nMode : ");
             capVal = (regVal >> 2) & 0x7;
             if ( capVal == 0b000 ) {
@@ -120,9 +120,9 @@ void RemoteTransmitterComponent::readAllRegs()
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
-        
+       
         case 0x2 : {
-        
+       
             ESP_LOGCONFIG(TAG,"Data Processing mode:\nDataMode : ");
             capVal = (regVal >> 5) & 0x3;
             if ( capVal == 0b00 ) {
@@ -134,7 +134,7 @@ void RemoteTransmitterComponent::readAllRegs()
             } else if ( capVal == 0b11 ) {
                 ESP_LOGCONFIG(TAG, "11 -> Continuous mode without bit synchronizer\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG,"\nModulation scheme:\nModulation Type : ");
             capVal = (regVal >> 3) & 0x3;
             if ( capVal == 0b00 ) {
@@ -147,7 +147,7 @@ void RemoteTransmitterComponent::readAllRegs()
             } else if ( capVal == 0b11 ) {
                 ESP_LOGCONFIG(TAG, "11 -> reserved\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG,"\nData shaping: ");
             if ( modeFSK ) {
                 ESP_LOGCONFIG(TAG, "in FSK:\n" );
@@ -177,16 +177,16 @@ void RemoteTransmitterComponent::readAllRegs()
                     ESP_LOGCONFIG(TAG, "ERROR - 11 is reserved\n" );
                 }
             }
-            
+           
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
-        
+       
         case 0x3 : {
             bitRate = (regVal << 8);
             break;
         }
-        
+       
         case 0x4 : {
             bitRate |= regVal;
             ESP_LOGCONFIG(TAG, "Bit Rate (Chip Rate when Manchester encoding is enabled)\nBitRate : ");
@@ -195,12 +195,12 @@ void RemoteTransmitterComponent::readAllRegs()
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
-        
+       
         case 0x5 : {
             freqDev = ( (regVal & 0x3f) << 8 );
             break;
         }
-        
+       
         case 0x6 : {
             freqDev |= regVal;
             ESP_LOGCONFIG(TAG, "Frequency deviation\nFdev : " );
@@ -209,20 +209,20 @@ void RemoteTransmitterComponent::readAllRegs()
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
-        
+       
         case 0x7 : {
             unsigned long tempVal = regVal;
             freqCenter = ( tempVal << 16 );
             break;
         }
-       
+      
         case 0x8 : {
             unsigned long tempVal = regVal;
             freqCenter = freqCenter | ( tempVal << 8 );
             break;
         }
 
-        case 0x9 : {        
+        case 0x9 : {       
             freqCenter = freqCenter | regVal;
             ESP_LOGCONFIG(TAG, "RF Carrier frequency\nFRF : " );
             unsigned long val = 61UL * freqCenter;
@@ -238,7 +238,7 @@ void RemoteTransmitterComponent::readAllRegs()
             } else {
                 ESP_LOGCONFIG(TAG, "0 -> RC calibration is in progress\n" );
             }
-        
+       
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
@@ -253,7 +253,7 @@ void RemoteTransmitterComponent::readAllRegs()
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
-        
+       
         case 0xc : {
             ESP_LOGCONFIG(TAG, "Reserved\n\n" );
             break;
@@ -272,7 +272,7 @@ void RemoteTransmitterComponent::readAllRegs()
             } else if ( val == 0b11 ) {
                 ESP_LOGCONFIG(TAG, "11 -> 262 ms\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG, "\nResolution of Listen mode Rx time (calibrated RC osc):\nListenResolRx : " );
             val = (regVal >> 4) & 0x3;
             if ( val == 0b00 ) {
@@ -291,7 +291,7 @@ void RemoteTransmitterComponent::readAllRegs()
             } else {
                 ESP_LOGCONFIG(TAG, "0 -> signal strength is above RssiThreshold\n" );
             }
-            
+           
             ESP_LOGCONFIG(TAG, "\nAction taken after acceptance of a packet in Listen mode:\nListenEnd : " );
             val = (regVal >> 1 ) & 0x3;
             if ( val == 0b00 ) {
@@ -303,12 +303,12 @@ void RemoteTransmitterComponent::readAllRegs()
             } else if ( val == 0b11 ) {
                 ESP_LOGCONFIG(TAG, "11 -> Reserved\n" );
             }
-            
-            
+           
+           
             ESP_LOGCONFIG(TAG, "\n" );
             break;
         }
-        
+       
         default : {
         }
     }
@@ -320,25 +320,24 @@ void RemoteTransmitterComponent::readAllRegs()
 
 
 uint8_t RemoteTransmitterComponent::rf12_initialize (uint8_t id, uint8_t band, float frequency, uint8_t g) {
-   
+  
     uint16_t reg=(frequency-430)*400;
     reg &= 0xfff;
     reg = 0xA000 + reg;
     ESP_LOGD(TAG,"freq=%f reg=%x(%d)",frequency,reg,reg);
 
- 
+
     rf12_xfer(0x0000); // initial SPI transfer added to avoid power-up problem
-    
+   
     rf12_xfer(RF_SLEEP_MODE); // DC (disable clk pin), enable lbd
 
     // wait until RFM12B is out of power-up reset, this takes several *seconds*
     rf12_xfer(RF_TXREG_WRITE); // in case we're still in OOK mode
-    //while (digitalRead(RFM_IRQ) == 0)
    for (size_t i = 0; i < 100; i++)
    {
        rf12_xfer(0x0000);
    }
-        
+       
 
     rf12_xfer(0x80C7 | (band << 4)); // EL (ena TX), EF (ena RX FIFO), 12.0pF
     rf12_xfer(reg); // 96-3960 freq range of values within band
@@ -359,14 +358,14 @@ uint8_t RemoteTransmitterComponent::rf12_initialize (uint8_t id, uint8_t band, f
     rf12_xfer(0xC800); // NOT USE
     rf12_xfer(0xC049); // 1.66MHz,3.1V
 
- 
+
 
     return id;
 }
 
 
 #define rf12_control rf12_xfer
-void RemoteTransmitterComponent::rf12_init_OOK (float frequency) 
+void RemoteTransmitterComponent::rf12_init_OOK (float frequency)
 {
     uint16_t reg=(frequency-430)*400;
     reg &= 0xfff;
@@ -376,29 +375,24 @@ void RemoteTransmitterComponent::rf12_init_OOK (float frequency)
 
     rf12_control(0x8017); // 8027    868 Mhz;disabel tx register; disable RX
                           //         fifo buffer; xtal cap 12pf, same as xmitter
-    rf12_control(0x82c0); // 82C0    enable receiver; enable basebandblock 
+    rf12_control(0x82c0); // 82C0    enable receiver; enable basebandblock
     rf12_control(reg); // A68A    868.2500 MHz
-    rf12_control(0xc691); // C691    c691 datarate 2395 kbps 0xc647 = 4.8kbps 
-    rf12_control(0x9425); // 9420    VDI; FAST;400khz;GAIn MAX; DRSSI -103dbm 
-//    rf12_control(0x9489); // 9489    VDI; FAST;200khz;GAIn -6db; DRSSI 97dbm 
-    rf12_control(0xC220); // C220    datafiltercommand; ** not documented cmd 
+    rf12_control(0xc691); // C691    c691 datarate 2395 kbps 0xc647 = 4.8kbps
+    rf12_control(0x9425); // 9420    VDI; FAST;400khz;GAIn MAX; DRSSI -103dbm
+//    rf12_control(0x9489); // 9489    VDI; FAST;200khz;GAIn -6db; DRSSI 97dbm
+    rf12_control(0xC220); // C220    datafiltercommand; ** not documented cmd
     rf12_control(0xCA00); // CA00    FiFo and resetmode cmd; FIFO fill disabeld
     rf12_control(0xC473); // C473    AFC run only once; enable AFC; enable
                           //         frequency offset register; +3 -4
     rf12_control(0xCC67); // CC67    pll settings command
     rf12_control(0xB800); // TX register write command not used
-    rf12_control(0xC800); // disable low dutycycle 
-    rf12_control(0xC040); // 1.66MHz,2.2V not used see 82c0  
+    rf12_control(0xC800); // disable low dutycycle
+    rf12_control(0xC040); // 1.66MHz,2.2V not used see 82c0 
 }
 
 
 
 void RemoteTransmitterComponent::setup() {
-    //vspi.setFrequency(80*1000000);
-    //vspi.begin();
-    //pinMode(CS_PIN, OUTPUT); //VSPI SS
-    //pinMode(TX, OUTPUT); //VSPI SS
-    //digitalWrite(23, LOW);  
     this->spi_setup();
     rf12_initialize(0, RF12_433MHZ,frequency_);
     //rf12_initialize(0, RF12_868MHZ);
@@ -429,7 +423,7 @@ void RemoteTransmitterComponent::mark_12( uint32_t usec) {
     delayMicroseconds(usec+178);
     rf12_onOff(0);
     return;
-  
+
 }
 void RemoteTransmitterComponent::space_12(uint32_t usec) {
   rf12_onOff(0);
@@ -450,13 +444,13 @@ void RemoteTransmitterComponent::set_frequency(float frequency) {
     reg = 0xA000 + reg;
     rf12_control(reg);
     //rf12_initialize(0, RF12_433MHZ,frequency);
-    //rf12_init_OOK(frequency); 
+    //rf12_init_OOK(frequency);
 }
 
 
 void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t send_wait) {
   std::stringstream s;
-  for (int32_t item : this->temp_.get_data()) 
+  for (int32_t item : this->temp_.get_data())
     s<<item<<',';
 
 
@@ -465,7 +459,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
 
   //rf12_xfer(RF_XMITTER_ON);
 
-  gpio_set_level(TX_PIN, 1); 
+  gpio_set_level(TX_PIN, 1);
   for (uint32_t i = 0; i < send_times; i++) {
     {
       InterruptLock lock;
@@ -484,7 +478,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
       delay_microseconds_safe(send_wait);
     }
   }
-  gpio_set_level(TX_PIN, 0); 
+  gpio_set_level(TX_PIN, 0);
 
     rf12_xfer(RF_IDLE_MODE);
     rf12_init_OOK (this->frequency_);

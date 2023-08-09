@@ -1,6 +1,6 @@
 #include "wemo_wrapper.h"
 #include <lwip/igmp.h>
-
+#include <sys/socket.h>
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -11,20 +11,18 @@ static const char *const TAG = "wemo";
 String WemoWrapper::state() {
   switch (wemotype) {
     case WEMO_BRIDGE: {
-      auto br = static_cast<switch_::Switch *>(device_);
-      ESP_LOGD(TAG, "bridge? %p", br);
-      return br->state ? "1" : "0";
+      return "0";
     }
 #ifdef USE_SWITCH
     case WEMO_SWITCH: {
-      auto sw = static_cast<switch_::Switch *>(device_);
+      auto sw = static_cast<switch_::Switch *>(wemodevice);
       ESP_LOGD(TAG, "switch? %p", sw);
       return sw->state ? "1" : "0";
     }
 #endif
 #ifdef USE_LIGHT
     case WEMO_LIGHT:
-      auto light = static_cast<light::LightState *>(device_);
+      auto light = static_cast<light::LightState *>(wemodevice);
       ESP_LOGD(TAG, "light %p", light);
       bool state;
       light->current_values_as_binary(&state);
@@ -44,9 +42,11 @@ String WemoWrapper::state() {
 
 void WemoWrapper::on() {
   switch (wemotype) {
+    case WEMO_BRIDGE:
+    break;
 #ifdef USE_SWITCH
     case WEMO_SWITCH: {
-      auto sw = static_cast<switch_::Switch *>(device_);
+      auto sw = static_cast<switch_::Switch *>(wemodevice);
       ESP_LOGD(TAG, "switch? %p", sw);
       sw->turn_on();
       break;
@@ -54,23 +54,28 @@ void WemoWrapper::on() {
 #endif
 #ifdef USE_LIGHT
     case WEMO_LIGHT:
-      auto light = static_cast<light::LightState *>(device_);
+      auto light = static_cast<light::LightState *>(wemodevice);
       ESP_LOGD(TAG, "light %p", light);
       bool state;
       light->make_call().set_state(true).perform();
       break;
 #endif
+#ifdef USE_CLIMATE
+    case WEMO_HEATER:
+      static_cast<climate::Climate *>(wemodevice)->make_call().set_mode(climate::CLIMATE_MODE_HEAT).perform();
+    break;
+#endif
   }
 
-#ifdef USE_CLIMATE
-#endif
 }
 
 void WemoWrapper::off() {
   switch (wemotype) {
+    case WEMO_BRIDGE:
+    break;
 #ifdef USE_SWITCH
     case WEMO_SWITCH: {
-      auto sw = static_cast<switch_::Switch *>(device_);
+      auto sw = static_cast<switch_::Switch *>(wemodevice);
       ESP_LOGD(TAG, "switch? %p", sw);
       sw->turn_off();
       break;
@@ -78,38 +83,40 @@ void WemoWrapper::off() {
 #endif
 #ifdef USE_LIGHT
     case WEMO_LIGHT:
-      auto light = static_cast<light::LightState *>(device_);
+      auto light = static_cast<light::LightState *>(wemodevice);
       ESP_LOGD(TAG, "light %p", light);
       bool state;
       light->make_call().set_state(false).perform();
       break;
 #endif
+#ifdef USE_CLIMATE
+    case WEMO_HEATER:
+      static_cast<climate::Climate *>(wemodevice)->make_call().set_mode(climate::CLIMATE_MODE_OFF).perform();
+    break;
+#endif
   }
 
-#ifdef USE_CLIMATE
-#endif
 }
 
 String WemoWrapper::serial() {
-  uint32_t uniqueSwitchId = device_->get_object_id_hash();
+  uint32_t uniqueSwitchId = wemodevice->get_object_id_hash();
   char uuid[64];
-  sprintf_P(uuid, PSTR("38323636-4558-cafe-9188-cda0e6%02x%02x%02x"), (uint16_t) ((uniqueSwitchId >> 16) & 0xff),
+  sprintf(uuid, ("38323636-4558-cafe-9188-cda0e6%02x%02x%02x"), (uint16_t) ((uniqueSwitchId >> 16) & 0xff),
             (uint16_t) ((uniqueSwitchId >> 8) & 0xff), (uint16_t) uniqueSwitchId & 0xff);
   return uuid;
 }
 
-void WemoWrapper::respondToSearch(IPAddress &senderIP, unsigned int senderPort) {
-  IPAddress localIP = WiFi.localIP();
+void WemoWrapper::respondToSearch(in_addr senderIP, unsigned int senderPort) {
+  network::IPAddress localIP = wifi::global_wifi_component->wifi_sta_ip();
 
   char s[16];
   sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
-  WiFiUDP UDP;
   String response = "HTTP/1.1 200 OK\r\n"
                     "CACHE-CONTROL: max-age=86400\r\n"
                     "DATE: Sat, 26 Nov 2016 04:56:29 GMT\r\n"
                     "EXT:\r\n"
                     "LOCATION: http://" +
-                    String(s) + ":" + server_.get_port() + "/" + serial() +
+                    String(s) + ":" + std::to_string(server_.get_port()) + "/" + serial() +
                     ".xml\r\n"
                     "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n"
                     "01-NLS: b9200ebb-736d-4b93-bf03-835149d13983\r\n"
@@ -121,9 +128,16 @@ void WemoWrapper::respondToSearch(IPAddress &senderIP, unsigned int senderPort) 
                     "X-User-Agent: redsonic\r\n\r\n";
 
   ESP_LOGD(TAG, "answering UDP :%s \n", response.c_str());
-  UDP.beginPacket(senderIP, senderPort);
-  UDP.print(response.c_str());
-  UDP.endPacket();
+  int sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+  struct sockaddr_in destination, source;
+
+  destination.sin_family = AF_INET;
+  destination.sin_port = htons(senderPort);
+  destination.sin_addr.s_addr = senderIP.s_addr;
+
+  int n_bytes = ::sendto(sock, response.c_str(), response.length(), 0, reinterpret_cast<sockaddr*>(&destination), sizeof(destination));
+  ::close(sock);
+
 }
 
 void WemoWrapper::handleBody(AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total) {
@@ -230,7 +244,7 @@ void WemoWrapper::handleRequest(AsyncWebServerRequest *req) {
 
   ESP_LOGD(TAG, " ########## Responding to setup.xml ... ########\n");
 
-  IPAddress localIP = WiFi.localIP();
+  network::IPAddress localIP = wifi::global_wifi_component->wifi_sta_ip();
   char s[16];
   sprintf(s, "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
 

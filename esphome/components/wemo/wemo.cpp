@@ -8,19 +8,43 @@
 namespace esphome {
 namespace wemo {
 
-static ip4_addr_t ipMulti{static_cast<uint32_t>(IPAddress(239, 255, 255, 250))};
+static ip4_addr_t ipMulti{static_cast<uint32_t>(network::IPAddress(239, 255, 255, 250))};
 static const unsigned int portMulti = 1900;
 static const char *const TAG = "wemo";
 
 void WemoManager::setup() {
   ESP_LOGD(TAG, "Begin multicast ..\n");
-  udp_ = make_unique<WiFiUDP>();
-  ESP_LOGD(TAG, "created\n");
-  if (!udp_->begin(portMulti)) {
-    ESP_LOGD(TAG, "Connection failed\n");
-    mark_failed();
+  this->socket_ = socket::socket_ip(SOCK_DGRAM, IPPROTO_IP);
+  int enable = 1;
+  int err = this->socket_->setsockopt(SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+  if (err != 0) {
+    ESP_LOGW(TAG, "Socket unable to set reuseaddr: errno %d", err);
+    // we can still continue
+  }
+  err = this->socket_->setblocking(false);
+  if (err != 0) {
+    ESP_LOGW(TAG, "Socket unable to set nonblocking mode: errno %d", err);
+    this->mark_failed();
     return;
   }
+
+  struct sockaddr_storage server;
+
+  socklen_t sl = socket::set_sockaddr_any((struct sockaddr *) &server, sizeof(server), portMulti);
+  if (sl == 0) {
+    ESP_LOGW(TAG, "Socket unable to set sockaddr: errno %d", errno);
+    this->mark_failed();
+    return;
+  }
+  server.ss_family = AF_INET;
+
+  err = this->socket_->bind((struct sockaddr *) &server, sizeof(server));
+  if (err != 0) {
+    ESP_LOGW(TAG, "Socket unable to bind: errno %d", errno);
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "created\n");
   ESP_LOGD(TAG, "begin\n");
 
   if (igmp_joingroup(IP4_ADDR_ANY4, &ipMulti)) {
@@ -81,7 +105,7 @@ bool WemoManager::handleUpnpControl(WemoWrapper sw, AsyncWebServerRequest *req, 
   }
 
   if (request.find("<u:GetBinaryState xmlns:u=\"urn:Belkin:service:basicevent:1\">") != std::string::npos) {
-    Serial.println("Got GetStatus request");
+    ESP_LOGD(TAG,"Got GetStatus request");
     response_xml = "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
                    "s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
                    "<s:Body>"
@@ -99,8 +123,8 @@ bool WemoManager::handleUpnpControl(WemoWrapper sw, AsyncWebServerRequest *req, 
   stream->print(response_xml.c_str());
   req->send(stream);
 
-  Serial.print("Sending :");
-  Serial.println(response_xml);
+  ESP_LOGD(TAG,"Sending :");
+  ESP_LOGD(TAG,response_xml.c_str());
   return true;
 }
 
@@ -116,28 +140,35 @@ void WemoManager::add_device(WemoWrapper device, uint16_t port) {
 }
 
 void WemoManager::loop() {
-  int packetSize = udp_->parsePacket();
-  char packetBuffer[packetSize];
+  
+
+  char packetBuffer[1460];
+  ssize_t packetSize = this->socket_->read(packetBuffer, sizeof(packetBuffer));
+  if (packetSize == -1) {
+    return;
+  }
   if (packetSize > 0) {
-    IPAddress senderIP = udp_->remoteIP();
-    unsigned int senderPort = udp_->remotePort();
+    sockaddr_in peer;
+    socklen_t len = sizeof(peer);
+    socket_->getpeername((sockaddr*)&peer,&len);
+    //unsigned int senderPort = udp_->remotePort();
 
     // read the packet into the buffer
-    udp_->read(packetBuffer, packetSize);
+    //udp_->read(packetBuffer, packetSize);
 
     // check if this is a M-SEARCH for WeMo device
     String request = String((char *) packetBuffer);
     // ESP_LOGD(TAG,"----------\n");
     // Serial.println(request);
     // ESP_LOGD(TAG,"-----------\n");
-    if (request.indexOf("M-SEARCH") >= 0) {
-      if ((request.indexOf("urn:Belkin:device:**") > 0) || (request.indexOf("ssdp:all") > 0) ||
-          (request.indexOf("upnp:rootdevice") > 0)) {
+    if (request.find("M-SEARCH") != std::string::npos) {
+      if ((request.find("urn:Belkin:device:**") != std::string::npos) || (request.find("ssdp:all") != std::string::npos) ||
+          (request.find("upnp:rootdevice") != std::string::npos)) {
         ESP_LOGD(TAG, "Got UDP Belkin Request..\n");
 
         // int arrSize = sizeof(switchs) / sizeof(Switch);
         for (auto &sw : devices) {
-          sw.respondToSearch(senderIP, senderPort);
+          sw.respondToSearch(peer.sin_addr, peer.sin_port);
         }
       }
     }
